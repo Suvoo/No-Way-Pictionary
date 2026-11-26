@@ -1,0 +1,2910 @@
+{
+ "_doc": "Stroke templates for PAL-draw rounds. 100x100 box, y grows downward. Arc angles in degrees (0 = right, 90 = down). 'label' is sent only to the PAL, never to the browser.",
+ "templates": {
+  "star": [
+   {
+    "label": "a long slanted line",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        12
+       ],
+       [
+        73.5,
+        84.4
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a line back up to the left",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        73.5,
+        84.4
+       ],
+       [
+        12,
+        39.6
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a flat line across",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        12,
+        39.6
+       ],
+       [
+        88,
+        39.6
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a line slanting down left",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        88,
+        39.6
+       ],
+       [
+        26.5,
+        84.4
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a line back to the top point",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        26.5,
+        84.4
+       ],
+       [
+        50,
+        12
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "sun": [
+   {
+    "label": "a circle",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 50,
+      "r": 17
+     }
+    ]
+   },
+   {
+    "label": "two straight rays, up and down",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        26
+       ],
+       [
+        50,
+        12
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        74
+       ],
+       [
+        50,
+        88
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "two rays left and right",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        26,
+        50
+       ],
+       [
+        12,
+        50
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        74,
+        50
+       ],
+       [
+        88,
+        50
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "two diagonal rays",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        33,
+        33
+       ],
+       [
+        23,
+        23
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        67,
+        67
+       ],
+       [
+        77,
+        77
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "two more diagonal rays",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        67,
+        33
+       ],
+       [
+        77,
+        23
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        33,
+        67
+       ],
+       [
+        23,
+        77
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "house": [
+   {
+    "label": "a big square",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        25,
+        45
+       ],
+       [
+        75,
+        45
+       ],
+       [
+        75,
+        85
+       ],
+       [
+        25,
+        85
+       ],
+       [
+        25,
+        45
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a triangle on top",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        20,
+        45
+       ],
+       [
+        50,
+        18
+       ],
+       [
+        80,
+        45
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a tall thin rectangle at the bottom",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        44,
+        85
+       ],
+       [
+        44,
+        64
+       ],
+       [
+        56,
+        64
+       ],
+       [
+        56,
+        85
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a small square on the left",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        30,
+        52
+       ],
+       [
+        40,
+        52
+       ],
+       [
+        40,
+        61
+       ],
+       [
+        30,
+        61
+       ],
+       [
+        30,
+        52
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a small square on the right",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        60,
+        52
+       ],
+       [
+        70,
+        52
+       ],
+       [
+        70,
+        61
+       ],
+       [
+        60,
+        61
+       ],
+       [
+        60,
+        52
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a little rectangle sticking up on the roof",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        63,
+        30
+       ],
+       [
+        63,
+        20
+       ],
+       [
+        70,
+        20
+       ],
+       [
+        70,
+        36
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "heart": [
+   {
+    "label": "a bump on the left",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 37,
+      "cy": 38,
+      "r": 13,
+      "start": 160,
+      "end": 360
+     }
+    ]
+   },
+   {
+    "label": "a bump on the right",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 63,
+      "cy": 38,
+      "r": 13,
+      "start": 180,
+      "end": 380
+     }
+    ]
+   },
+   {
+    "label": "a line down to a point",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        24.8,
+        42.4
+       ],
+       [
+        50,
+        82
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "another line meeting at the point",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        75.2,
+        42.4
+       ],
+       [
+        50,
+        82
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "fish": [
+   {
+    "label": "an oval",
+    "shapes": [
+     {
+      "type": "ellipse",
+      "cx": 44,
+      "cy": 50,
+      "rx": 28,
+      "ry": 16
+     }
+    ]
+   },
+   {
+    "label": "a triangle on one end",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        71,
+        50
+       ],
+       [
+        88,
+        35
+       ],
+       [
+        88,
+        65
+       ],
+       [
+        71,
+        50
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a small dot",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 28,
+      "cy": 46,
+      "r": 2.5
+     }
+    ]
+   },
+   {
+    "label": "a curved line in the middle",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 50,
+      "cy": 50,
+      "r": 10,
+      "start": -60,
+      "end": 60
+     }
+    ]
+   },
+   {
+    "label": "little circles floating up",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 16,
+      "cy": 28,
+      "r": 3
+     },
+     {
+      "type": "circle",
+      "cx": 22,
+      "cy": 18,
+      "r": 2
+     }
+    ]
+   }
+  ],
+  "tree": [
+   {
+    "label": "two straight lines going up",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        45,
+        88
+       ],
+       [
+        45,
+        62
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        55,
+        88
+       ],
+       [
+        55,
+        62
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a big round blob on top",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 40,
+      "r": 24
+     }
+    ]
+   },
+   {
+    "label": "a flat line at the bottom",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        18,
+        88
+       ],
+       [
+        82,
+        88
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a little line inside the blob",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        62
+       ],
+       [
+        50,
+        46
+       ],
+       [
+        42,
+        38
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "small circles in the blob",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 40,
+      "cy": 32,
+      "r": 3
+     },
+     {
+      "type": "circle",
+      "cx": 60,
+      "cy": 40,
+      "r": 3
+     },
+     {
+      "type": "circle",
+      "cx": 52,
+      "cy": 26,
+      "r": 3
+     }
+    ]
+   }
+  ],
+  "car": [
+   {
+    "label": "a long shape with a bump on top",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        10,
+        66
+       ],
+       [
+        10,
+        52
+       ],
+       [
+        26,
+        48
+       ],
+       [
+        36,
+        34
+       ],
+       [
+        66,
+        34
+       ],
+       [
+        76,
+        48
+       ],
+       [
+        90,
+        52
+       ],
+       [
+        90,
+        66
+       ],
+       [
+        10,
+        66
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a circle at the back",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 28,
+      "cy": 67,
+      "r": 8
+     }
+    ]
+   },
+   {
+    "label": "a circle at the front",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 72,
+      "cy": 67,
+      "r": 8
+     }
+    ]
+   },
+   {
+    "label": "a line splitting the bump",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        52,
+        34
+       ],
+       [
+        52,
+        48
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        30,
+        48
+       ],
+       [
+        78,
+        48
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a tiny circle at the front",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 85,
+      "cy": 56,
+      "r": 2.5
+     }
+    ]
+   }
+  ],
+  "cat": [
+   {
+    "label": "a big circle",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 56,
+      "r": 25
+     }
+    ]
+   },
+   {
+    "label": "two triangles on top",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        30,
+        42
+       ],
+       [
+        31,
+        18
+       ],
+       [
+        45,
+        32
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        55,
+        32
+       ],
+       [
+        69,
+        18
+       ],
+       [
+        70,
+        42
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "two small dots",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 41,
+      "cy": 51,
+      "r": 3
+     },
+     {
+      "type": "circle",
+      "cx": 59,
+      "cy": 51,
+      "r": 3
+     }
+    ]
+   },
+   {
+    "label": "a tiny triangle and a curve",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        47,
+        59
+       ],
+       [
+        53,
+        59
+       ],
+       [
+        50,
+        63
+       ],
+       [
+        47,
+        59
+       ]
+      ]
+     },
+     {
+      "type": "arc",
+      "cx": 46,
+      "cy": 64,
+      "r": 4,
+      "start": 0,
+      "end": 150
+     },
+     {
+      "type": "arc",
+      "cx": 54,
+      "cy": 64,
+      "r": 4,
+      "start": 30,
+      "end": 180
+     }
+    ]
+   },
+   {
+    "label": "three lines on the left",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        38,
+        60
+       ],
+       [
+        14,
+        54
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        38,
+        63
+       ],
+       [
+        14,
+        63
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        38,
+        66
+       ],
+       [
+        14,
+        72
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "three lines on the right",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        62,
+        60
+       ],
+       [
+        86,
+        54
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        62,
+        63
+       ],
+       [
+        86,
+        63
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        62,
+        66
+       ],
+       [
+        86,
+        72
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "smiley face": [
+   {
+    "label": "a big circle",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 50,
+      "r": 34
+     }
+    ]
+   },
+   {
+    "label": "a dot on the left",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 38,
+      "cy": 40,
+      "r": 3.5
+     }
+    ]
+   },
+   {
+    "label": "a dot on the right",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 62,
+      "cy": 40,
+      "r": 3.5
+     }
+    ]
+   },
+   {
+    "label": "a curve underneath",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 50,
+      "cy": 52,
+      "r": 20,
+      "start": 25,
+      "end": 155
+     }
+    ]
+   }
+  ],
+  "glasses": [
+   {
+    "label": "a circle on the left",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 32,
+      "cy": 52,
+      "r": 14
+     }
+    ]
+   },
+   {
+    "label": "a circle on the right",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 68,
+      "cy": 52,
+      "r": 14
+     }
+    ]
+   },
+   {
+    "label": "a little bridge between them",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 50,
+      "cy": 52,
+      "r": 5,
+      "start": 200,
+      "end": 340
+     }
+    ]
+   },
+   {
+    "label": "a line going off to the left",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        18,
+        50
+       ],
+       [
+        6,
+        42
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a line going off to the right",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        82,
+        50
+       ],
+       [
+        94,
+        42
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "cup": [
+   {
+    "label": "a slanted line on the left",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        30,
+        32
+       ],
+       [
+        34,
+        80
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a slanted line on the right",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        66,
+        32
+       ],
+       [
+        62,
+        80
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a flat line at the bottom",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        34,
+        80
+       ],
+       [
+        62,
+        80
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a flat oval on top",
+    "shapes": [
+     {
+      "type": "ellipse",
+      "cx": 48,
+      "cy": 32,
+      "rx": 18,
+      "ry": 5
+     }
+    ]
+   },
+   {
+    "label": "a curve on the side",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 66,
+      "cy": 55,
+      "r": 11,
+      "start": -80,
+      "end": 80
+     }
+    ]
+   },
+   {
+    "label": "squiggles above it",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        42,
+        22
+       ],
+       [
+        45,
+        16
+       ],
+       [
+        42,
+        10
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        54,
+        22
+       ],
+       [
+        57,
+        16
+       ],
+       [
+        54,
+        10
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "key": [
+   {
+    "label": "a circle",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 26,
+      "cy": 50,
+      "r": 14
+     }
+    ]
+   },
+   {
+    "label": "a long straight line",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        40,
+        50
+       ],
+       [
+        88,
+        50
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a little tooth",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        76,
+        50
+       ],
+       [
+        76,
+        62
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "another tooth",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        85,
+        50
+       ],
+       [
+        85,
+        60
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a tiny circle inside",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 26,
+      "cy": 50,
+      "r": 4
+     }
+    ]
+   }
+  ],
+  "umbrella": [
+   {
+    "label": "a big dome",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 50,
+      "cy": 52,
+      "r": 36,
+      "start": 180,
+      "end": 360
+     }
+    ]
+   },
+   {
+    "label": "three little bumps along the bottom",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 26,
+      "cy": 52,
+      "r": 12,
+      "start": 180,
+      "end": 360
+     },
+     {
+      "type": "arc",
+      "cx": 50,
+      "cy": 52,
+      "r": 12,
+      "start": 180,
+      "end": 360
+     },
+     {
+      "type": "arc",
+      "cx": 74,
+      "cy": 52,
+      "r": 12,
+      "start": 180,
+      "end": 360
+     }
+    ]
+   },
+   {
+    "label": "a straight line down the middle",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        52
+       ],
+       [
+        50,
+        84
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a hook at the bottom",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 44,
+      "cy": 84,
+      "r": 6,
+      "start": 0,
+      "end": 180
+     }
+    ]
+   }
+  ],
+  "boat": [
+   {
+    "label": "a wide shape like a bowl",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        14,
+        62
+       ],
+       [
+        86,
+        62
+       ],
+       [
+        72,
+        78
+       ],
+       [
+        28,
+        78
+       ],
+       [
+        14,
+        62
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a tall straight line",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        62
+       ],
+       [
+        50,
+        14
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a triangle next to it",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        18
+       ],
+       [
+        78,
+        56
+       ],
+       [
+        50,
+        56
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a wavy line under it",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        8,
+        86
+       ],
+       [
+        20,
+        82
+       ],
+       [
+        32,
+        86
+       ],
+       [
+        44,
+        82
+       ],
+       [
+        56,
+        86
+       ],
+       [
+        68,
+        82
+       ],
+       [
+        80,
+        86
+       ],
+       [
+        92,
+        82
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a tiny triangle at the top",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        14
+       ],
+       [
+        60,
+        18
+       ],
+       [
+        50,
+        22
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "bird": [
+   {
+    "label": "an oval",
+    "shapes": [
+     {
+      "type": "ellipse",
+      "cx": 46,
+      "cy": 58,
+      "rx": 22,
+      "ry": 15
+     }
+    ]
+   },
+   {
+    "label": "a circle on top",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 70,
+      "cy": 40,
+      "r": 9
+     }
+    ]
+   },
+   {
+    "label": "a tiny pointy triangle",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        78,
+        37
+       ],
+       [
+        90,
+        41
+       ],
+       [
+        78,
+        45
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a small dot",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 72,
+      "cy": 38,
+      "r": 1.8
+     }
+    ]
+   },
+   {
+    "label": "a curve in the middle",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 44,
+      "cy": 56,
+      "r": 12,
+      "start": 180,
+      "end": 330
+     }
+    ]
+   },
+   {
+    "label": "two thin lines at the bottom",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        42,
+        72
+       ],
+       [
+        40,
+        86
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        52,
+        72
+       ],
+       [
+        54,
+        86
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "chair": [
+   {
+    "label": "a tall straight line",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        30,
+        12
+       ],
+       [
+        30,
+        88
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a flat line across",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        30,
+        56
+       ],
+       [
+        72,
+        56
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a line down from the end",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        72,
+        56
+       ],
+       [
+        72,
+        88
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "two short lines across the top",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        30,
+        20
+       ],
+       [
+        46,
+        20
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        30,
+        34
+       ],
+       [
+        46,
+        34
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a line connecting them",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        46,
+        20
+       ],
+       [
+        46,
+        56
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "clock": [
+   {
+    "label": "a big circle",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 50,
+      "r": 34
+     }
+    ]
+   },
+   {
+    "label": "a short line from the middle up",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        50
+       ],
+       [
+        50,
+        30
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a longer line from the middle",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        50
+       ],
+       [
+        68,
+        58
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "two little marks, top and bottom",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        18
+       ],
+       [
+        50,
+        23
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        77
+       ],
+       [
+        50,
+        82
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "two little marks, left and right",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        18,
+        50
+       ],
+       [
+        23,
+        50
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        77,
+        50
+       ],
+       [
+        82,
+        50
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a dot in the middle",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 50,
+      "r": 2
+     }
+    ]
+   }
+  ],
+  "flower": [
+   {
+    "label": "a small circle",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 36,
+      "r": 7
+     }
+    ]
+   },
+   {
+    "label": "circles above and below it",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 22,
+      "r": 7
+     },
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 50,
+      "r": 7
+     }
+    ]
+   },
+   {
+    "label": "circles left and right",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 36,
+      "cy": 36,
+      "r": 7
+     },
+     {
+      "type": "circle",
+      "cx": 64,
+      "cy": 36,
+      "r": 7
+     }
+    ]
+   },
+   {
+    "label": "a long line going down",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        57
+       ],
+       [
+        50,
+        92
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a pointy oval on the side",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        76
+       ],
+       [
+        60,
+        66
+       ],
+       [
+        68,
+        68
+       ],
+       [
+        50,
+        76
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "moon": [
+   {
+    "label": "a big curve",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 50,
+      "cy": 50,
+      "r": 32,
+      "start": 60,
+      "end": 300
+     }
+    ]
+   },
+   {
+    "label": "a smaller curve inside",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 78,
+      "cy": 50,
+      "r": 30.2,
+      "start": 113.4,
+      "end": 246.6
+     }
+    ]
+   },
+   {
+    "label": "a little cross",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        78,
+        22
+       ],
+       [
+        78,
+        32
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        73,
+        27
+       ],
+       [
+        83,
+        27
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "another little cross",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        84,
+        70
+       ],
+       [
+        84,
+        78
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        80,
+        74
+       ],
+       [
+        88,
+        74
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "bicycle": [
+   {
+    "label": "a circle on the left",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 26,
+      "cy": 62,
+      "r": 16
+     }
+    ]
+   },
+   {
+    "label": "a circle on the right",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 74,
+      "cy": 62,
+      "r": 16
+     }
+    ]
+   },
+   {
+    "label": "a triangle shape between them",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        26,
+        62
+       ],
+       [
+        48,
+        62
+       ],
+       [
+        66,
+        38
+       ],
+       [
+        42,
+        38
+       ],
+       [
+        26,
+        62
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        42,
+        38
+       ],
+       [
+        48,
+        62
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a line down to the right circle",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        66,
+        38
+       ],
+       [
+        74,
+        62
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a short bar on top",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        64,
+        30
+       ],
+       [
+        66,
+        38
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        58,
+        28
+       ],
+       [
+        70,
+        30
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a little flat line on the left",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        36,
+        32
+       ],
+       [
+        48,
+        32
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        42,
+        32
+       ],
+       [
+        42,
+        38
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "apple": [
+   {
+    "label": "a round shape",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 58,
+      "r": 26
+     }
+    ]
+   },
+   {
+    "label": "a short line on top",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        32
+       ],
+       [
+        53,
+        20
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a pointy leaf",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        53,
+        26
+       ],
+       [
+        63,
+        18
+       ],
+       [
+        70,
+        22
+       ],
+       [
+        53,
+        26
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a little curve inside",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 40,
+      "cy": 50,
+      "r": 10,
+      "start": 200,
+      "end": 260
+     }
+    ]
+   }
+  ],
+  "envelope": [
+   {
+    "label": "a wide rectangle",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        14,
+        30
+       ],
+       [
+        86,
+        30
+       ],
+       [
+        86,
+        74
+       ],
+       [
+        14,
+        74
+       ],
+       [
+        14,
+        30
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a big V shape",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        14,
+        30
+       ],
+       [
+        50,
+        56
+       ],
+       [
+        86,
+        30
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "two lines from the bottom corners",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        14,
+        74
+       ],
+       [
+        42,
+        50
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        86,
+        74
+       ],
+       [
+        58,
+        50
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a tiny square in a corner",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        72,
+        36
+       ],
+       [
+        80,
+        36
+       ],
+       [
+        80,
+        44
+       ],
+       [
+        72,
+        44
+       ],
+       [
+        72,
+        36
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "snowman": [
+   {
+    "label": "a big circle at the bottom",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 72,
+      "r": 17
+     }
+    ]
+   },
+   {
+    "label": "a medium circle on top of it",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 44,
+      "r": 12
+     }
+    ]
+   },
+   {
+    "label": "a small circle on top",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 24,
+      "r": 9
+     }
+    ]
+   },
+   {
+    "label": "two stick lines out the sides",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        38,
+        44
+       ],
+       [
+        20,
+        34
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        62,
+        44
+       ],
+       [
+        80,
+        34
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "dots down the middle",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 40,
+      "r": 1.8
+     },
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 48,
+      "r": 1.8
+     },
+     {
+      "type": "circle",
+      "cx": 47,
+      "cy": 23,
+      "r": 1.5
+     },
+     {
+      "type": "circle",
+      "cx": 53,
+      "cy": 23,
+      "r": 1.5
+     }
+    ]
+   },
+   {
+    "label": "a rectangle with a brim on top",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        40,
+        15
+       ],
+       [
+        60,
+        15
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        44,
+        15
+       ],
+       [
+        44,
+        6
+       ],
+       [
+        56,
+        6
+       ],
+       [
+        56,
+        15
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "balloon": [
+   {
+    "label": "a tall oval",
+    "shapes": [
+     {
+      "type": "ellipse",
+      "cx": 50,
+      "cy": 38,
+      "rx": 20,
+      "ry": 25
+     }
+    ]
+   },
+   {
+    "label": "a tiny triangle under it",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        63
+       ],
+       [
+        46,
+        68
+       ],
+       [
+        54,
+        68
+       ],
+       [
+        50,
+        63
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a long wiggly line",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        68
+       ],
+       [
+        46,
+        76
+       ],
+       [
+        54,
+        84
+       ],
+       [
+        48,
+        94
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "mushroom": [
+   {
+    "label": "a big dome",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 50,
+      "cy": 52,
+      "r": 30,
+      "start": 180,
+      "end": 360
+     }
+    ]
+   },
+   {
+    "label": "a flat line under it",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        20,
+        52
+       ],
+       [
+        80,
+        52
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a short wide rectangle under that",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        40,
+        52
+       ],
+       [
+        40,
+        84
+       ],
+       [
+        60,
+        84
+       ],
+       [
+        60,
+        52
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a few small circles on the dome",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 38,
+      "cy": 40,
+      "r": 4
+     },
+     {
+      "type": "circle",
+      "cx": 56,
+      "cy": 34,
+      "r": 4
+     },
+     {
+      "type": "circle",
+      "cx": 66,
+      "cy": 46,
+      "r": 3
+     }
+    ]
+   }
+  ],
+  "ladder": [
+   {
+    "label": "a long straight line",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        35,
+        8
+       ],
+       [
+        35,
+        92
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "another long line next to it",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        65,
+        8
+       ],
+       [
+        65,
+        92
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a line across",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        35,
+        22
+       ],
+       [
+        65,
+        22
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        35,
+        40
+       ],
+       [
+        65,
+        40
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "more lines across",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        35,
+        58
+       ],
+       [
+        65,
+        58
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "one more line across",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        35,
+        76
+       ],
+       [
+        65,
+        76
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "ice cream": [
+   {
+    "label": "a triangle pointing down",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        34,
+        46
+       ],
+       [
+        66,
+        46
+       ],
+       [
+        50,
+        90
+       ],
+       [
+        34,
+        46
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a dome on top",
+    "shapes": [
+     {
+      "type": "arc",
+      "cx": 50,
+      "cy": 46,
+      "r": 16,
+      "start": 180,
+      "end": 360
+     }
+    ]
+   },
+   {
+    "label": "crossing lines inside the triangle",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        38,
+        54
+       ],
+       [
+        58,
+        74
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        62,
+        54
+       ],
+       [
+        42,
+        74
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a small circle on top",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 50,
+      "cy": 26,
+      "r": 4
+     }
+    ]
+   },
+   {
+    "label": "a tiny line on it",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        50,
+        22
+       ],
+       [
+        54,
+        15
+       ]
+      ]
+     }
+    ]
+   }
+  ],
+  "pizza": [
+   {
+    "label": "a long triangle",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        20,
+        22
+       ],
+       [
+        84,
+        40
+       ],
+       [
+        36,
+        88
+       ],
+       [
+        20,
+        22
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "a curved thick edge",
+    "shapes": [
+     {
+      "type": "line",
+      "points": [
+       [
+        20,
+        22
+       ],
+       [
+        84,
+        40
+       ]
+      ]
+     },
+     {
+      "type": "line",
+      "points": [
+       [
+        22,
+        16
+       ],
+       [
+        86,
+        34
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "label": "small circles inside",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 40,
+      "cy": 40,
+      "r": 5
+     },
+     {
+      "type": "circle",
+      "cx": 58,
+      "cy": 48,
+      "r": 5
+     }
+    ]
+   },
+   {
+    "label": "one more circle",
+    "shapes": [
+     {
+      "type": "circle",
+      "cx": 42,
+      "cy": 62,
+      "r": 5
+     }
+    ]
+   }
+  ]
+ }
+}

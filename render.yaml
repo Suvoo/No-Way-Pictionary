@@ -1,0 +1,18 @@
+# Render Blueprint: New > Blueprint > pick this repo. Then fill the secret env vars in the dashboard.
+services:
+  - type: web
+    name: reverse-pictionary
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: TAVUS_API_KEY
+        sync: false
+      - key: TAVUS_PAL_ID
+        sync: false
+      - key: TAVUS_FACE_ID
+        sync: false
+      - key: TAVUS_CALLBACK_SECRET
+        generateValue: true
+      - key: PUBLIC_URL
+        sync: false

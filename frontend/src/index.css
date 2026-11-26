@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #fbf7ef;
+  --color-paper-dark: #f1eadb;
+  --color-ink: #161412;
+  --color-ink-soft: #57524b;
+  --color-marker: #ffd84d;
+  --color-tomato: #ff5a4e;
+  --color-sky: #3b6cff;
+  --color-mint: #2fbf71;
+  --font-marker: "Permanent Marker", "Comic Sans MS", cursive;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Faint notebook dots behind everything. */
+body {
+  background-image: radial-gradient(rgba(22, 20, 18, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* A thick, slightly wobbly "marker" border used for cards and buttons. */
+.sketch {
+  border: 3px solid var(--color-ink);
+  border-radius: 18px 14px 20px 12px / 12px 20px 14px 18px;
+  box-shadow: 4px 5px 0 var(--color-ink);
+}
+
+.sketch-btn {
+  border: 3px solid var(--color-ink);
+  border-radius: 14px 18px 12px 20px / 20px 12px 18px 14px;
+  box-shadow: 3px 4px 0 var(--color-ink);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.sketch-btn:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 6px 0 var(--color-ink);
+}
+.sketch-btn:active:not(:disabled) {
+  transform: translate(2px, 3px);
+  box-shadow: 1px 1px 0 var(--color-ink);
+}
+.sketch-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.highlight {
+  background: linear-gradient(transparent 55%, var(--color-marker) 55%, var(--color-marker) 92%, transparent 92%);
+}

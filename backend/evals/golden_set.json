@@ -1,0 +1,121 @@
+{
+  "_doc": "Golden set for the game referee. Each case replays a scripted round against the real game engine (backend/game.py + scorer.py + tools.py) with a fake clock. 't' is seconds after the round starts. 'mode': user_draw = round 1 (player draws, PAL guesses), pal_draw = round 2 (PAL draws, player guesses). Run: python backend/evals/run_evals.py",
+  "cases": [
+    {
+      "id": 1, "title": "Easy word, clear drawing: PAL guesses star first try",
+      "mode": "user_draw", "word": "star",
+      "events": [{"t": 4, "pal": "Five points... is it a star?"}],
+      "expect": {"winner": "pal", "end_reason": "correct", "guesses_used": 1}
+    },
+    {
+      "id": 2, "title": "Medium word: PAL commits to car, changes its mind to bicycle",
+      "mode": "user_draw", "word": "bicycle",
+      "events": [
+        {"t": 5, "pal": "Two circles. Is it a car?"},
+        {"t": 6, "tool": "submit_guess", "args": {"guess": "car"}},
+        {"t": 14, "pal": "Wait, thin wheels and a frame. Is it a bike?"}
+      ],
+      "expect": {"winner": "pal", "end_reason": "correct", "guesses_used": 2, "first_guess": "car", "log_contains_note": "same guess, heard twice"}
+    },
+    {
+      "id": 3, "title": "Hard word is excluded from the v1 word bank",
+      "mode": "word_bank", "word": "aircraft carrier",
+      "expect": {"in_bank": false}
+    },
+    {
+      "id": 4, "title": "Wrong guess then correct: scored after 2 guesses, not 1",
+      "mode": "user_draw", "word": "house",
+      "events": [
+        {"t": 3, "tool": "submit_guess", "args": {"guess": "square"}},
+        {"t": 9, "tool": "submit_guess", "args": {"guess": "house"}}
+      ],
+      "expect": {"winner": "pal", "guesses_used": 2, "log_length": 2}
+    },
+    {
+      "id": 5, "title": "Timer expiry: no correct guess in 45s, drawer wins, game advances",
+      "mode": "user_draw", "word": "fish",
+      "events": [{"t": 10, "pal": "Is it a banana?"}, {"t": 47, "tick": true}],
+      "expect": {"winner": "user", "end_reason": "timeout", "state": "REVEAL", "next_round_starts": true}
+    },
+    {
+      "id": 6, "title": "No duplicate words in a game (200 seeds), Play Again avoids last game's words",
+      "mode": "word_picks", "seeds": 200,
+      "expect": {"duplicates": 0, "overlap_with_previous": 0}
+    },
+    {
+      "id": 7, "title": "PAL-draw round: player says house after stroke 3",
+      "mode": "pal_draw", "word": "house",
+      "events": [
+        {"t": 2, "tool": "draw_next_stroke"},
+        {"t": 4, "tool": "draw_next_stroke"},
+        {"t": 6, "user": "Is it a house?"}
+      ],
+      "expect": {"winner": "user", "end_reason": "correct", "strokes_drawn_min": 3}
+    },
+    {
+      "id": 8, "title": "PAL-draw round: player wrong 3 times, reveal shows key, PAL wins",
+      "mode": "pal_draw", "word": "key",
+      "events": [{"t": 3, "user": "car"}, {"t": 8, "user": "door"}, {"t": 13, "user": "fish"}],
+      "expect": {"winner": "pal", "end_reason": "out_of_guesses", "revealed_word": "key", "guesses_used": 3}
+    },
+    {
+      "id": 9, "title": "Silent player: PAL nudges once after 10s, backend keeps drawing",
+      "mode": "pal_draw", "word": "umbrella",
+      "events": [{"t": 7, "tick": true}, {"t": 10.5, "tick": true}, {"t": 12, "tick": true}],
+      "expect": {"say_contains": "quiet", "say_count_contains": ["quiet", 1], "strokes_drawn_min": 2, "status": "active"}
+    },
+    {
+      "id": 10, "title": "Cannot see paper: honesty fallback is logged, not counted as a guess",
+      "mode": "user_draw", "word": "cat",
+      "events": [{"t": 3, "pal": "Hmm, I can't see that clearly. Hold it closer to the camera."}],
+      "expect": {"guesses_used": 0, "status": "active", "log_contains_note": "honesty fallback", "prompt_contains": "Hold it closer"}
+    },
+    {
+      "id": 11, "title": "Synonym counts: 'kitty' is accepted for cat",
+      "mode": "pal_draw", "word": "cat",
+      "events": [{"t": 4, "user": "kitty!"}],
+      "expect": {"winner": "user", "end_reason": "correct"}
+    },
+    {
+      "id": 12, "title": "Repeated wrong guess does not burn a second guess",
+      "mode": "pal_draw", "word": "tree",
+      "events": [{"t": 3, "user": "broccoli"}, {"t": 9, "user": "broccoli"}],
+      "expect": {"guesses_used": 1, "status": "active", "log_contains_note": "already tried"}
+    },
+    {
+      "id": 13, "title": "Guess 1s after the buzzer still counts (network grace)",
+      "mode": "pal_draw", "word": "moon",
+      "events": [{"t": 46, "user": "moon"}],
+      "expect": {"winner": "user", "end_reason": "correct"}
+    },
+    {
+      "id": 14, "title": "Late guess after grace window is rejected",
+      "mode": "pal_draw", "word": "moon",
+      "events": [{"t": 48, "tick": true}, {"t": 48.5, "user": "moon"}],
+      "expect": {"winner": "pal", "end_reason": "timeout"}
+    },
+    {
+      "id": 15, "title": "Anti-cheat: PAL-draw word never appears in what the browser sees",
+      "mode": "pal_draw", "word": "pizza",
+      "events": [{"t": 3, "tool": "draw_next_stroke"}, {"t": 5, "user": "a triangle"}],
+      "expect": {"word_not_in_view": true, "status": "active"}
+    },
+    {
+      "id": 16, "title": "Player says their own word out loud while drawing: flagged in the audit log",
+      "mode": "user_draw", "word": "apple",
+      "events": [{"t": 2, "user": "come on, it's an apple"}, {"t": 6, "pal": "Is it an apple?"}],
+      "expect": {"winner": "pal", "flags_contains": "player said the word out loud"}
+    },
+    {
+      "id": 17, "title": "PAL tries to guess in its own drawing round: refused",
+      "mode": "pal_draw", "word": "sun",
+      "events": [{"t": 3, "tool": "submit_guess", "args": {"guess": "sun"}}],
+      "expect": {"tool_output_contains": "You are drawing this round", "status": "active", "guesses_used": 0}
+    },
+    {
+      "id": 18, "title": "Every v1 word has 3-7 stroke template strokes and a hint",
+      "mode": "templates",
+      "expect": {"min_strokes": 3, "max_strokes": 7}
+    }
+  ]
+}
