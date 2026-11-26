@@ -5,6 +5,7 @@
 > **A PAL is a prompt. This is a system.** The PAL is one component: face, voice and guesser. The game state machine, the secret handling, the turn-taking, the referee that scores every guess, the stroke templates and the eval are the application, and none of that lives in the Tavus dashboard.
 
 - **Live link:** `TODO: add after deploy`
+- **Repo:** https://github.com/Suvoo/No-Way-Pictionary
 - **Run it locally in 3 steps:** see [Quick start](#quick-start). It works with **no Tavus key** (demo mode).
 - **Check it works:** `make check` runs the golden-set eval (18 cases), API tests and the frontend build.
 
@@ -33,7 +34,7 @@ Scoring: **every round has a winner.** Guess right within 3 tries and the guesse
 ## Quick start
 
 ```bash
-git clone <this repo> && cd <repo>
+git clone https://github.com/Suvoo/No-Way-Pictionary.git && cd No-Way-Pictionary
 make setup        # venv + pip install + npm install + copies .env.example to .env
 make dev          # backend :8000 + frontend :5173 -> open http://localhost:5173
 ```

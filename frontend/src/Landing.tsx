@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
-const REPO_URL = (import.meta.env.VITE_REPO_URL as string | undefined) || "";
+const REPO_URL = (import.meta.env.VITE_REPO_URL as string | undefined) || "https://github.com/Suvoo/No-Way-Pictionary";
 
 const THINK_ALOUD = ["Two circles...", "Is that a car?", "Wait. Thin wheels, a frame...", "It's a bicycle!"];
 

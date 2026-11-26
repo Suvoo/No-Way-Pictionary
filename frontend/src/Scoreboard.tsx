@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { GameView } from "./api";
 
-const REPO_URL = (import.meta.env.VITE_REPO_URL as string | undefined) || "";
+const REPO_URL = (import.meta.env.VITE_REPO_URL as string | undefined) || "https://github.com/Suvoo/No-Way-Pictionary";
 
 // Final screen: score, all 6 words, who won each round, and the full guess log (the audit trail).
 export default function Scoreboard({ view, pal, onPlayAgain, onHome }: { view: GameView; pal: string; onPlayAgain: () => void; onHome: () => void }) {
