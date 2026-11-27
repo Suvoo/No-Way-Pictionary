@@ -37,7 +37,7 @@ def run_round_case(case: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
     if mode != "lobby":  # lobby = game created, round 1 not started yet
         game.start_round(g, now)
     if mode == "pal_draw":  # finish round 1 quickly, then start round 2
-        game.end_round(g, now, winner="user", reason="timeout")
+        game.end_round(g, now, reason="timeout")
         game.start_round(g, now)
     start = now
     effects: List[Dict[str, Any]] = []
@@ -73,6 +73,8 @@ def run_round_case(case: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
         check("status", r.status == exp["status"], f"got {r.status}")
     if "state" in exp:
         check("state", g.state == exp["state"], f"got {g.state}")
+    if "score" in exp:
+        check("score", g.score == exp["score"], f"got {g.score}")
     if "started_by" in exp:
         check("started_by", r.started_by == exp["started_by"], f"got {r.started_by}")
     if "first_guess" in exp:

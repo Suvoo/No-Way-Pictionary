@@ -8,8 +8,9 @@ States, in order (no skipping, one round at a time):
     REVEAL       round over: word shown, point given, waiting for "Next round"
     GAME_OVER    after round 6: scoreboard, Tavus conversation closed
 
-Scoring: every round has a winner. A correct guess within MAX_GUESSES gives the point to
-the guesser. Otherwise (3 wrong guesses or the timer runs out) the drawer wins the point.
+Scoring ("guessers only"): a correct guess within MAX_GUESSES scores 1 point for the guesser. A missed
+round (3 wrong guesses or the timer runs out) scores for nobody. So the score is who guessed more, and
+drawing badly on purpose never earns the drawer a point (the old "drawer wins a miss" rule did).
 
 This module is pure: callers pass `now` (unix seconds) and get back a list of Effects,
 plain dicts describing what to tell the PAL. `app.py` sends them to Tavus. That keeps the
@@ -39,7 +40,7 @@ ROUND_SECONDS = 45
 MAX_GUESSES = 3
 LATE_GRACE_SECONDS = 3.0  # a guess heard this soon after the buzzer still counts (speech-to-event lag measured ~1-2s live)
 AUTO_STROKE_SECONDS = 7  # backend draws the next stroke itself if the PAL has not for this long
-SILENCE_NUDGE_SECONDS = 10  # PAL-draw round: nudge the player once after this much silence
+SILENCE_NUDGE_SECONDS = 15  # PAL-draw round: nudge the player once after this much silence (10s talked over a guess live)
 LOOK_QUIET_SECONDS = 9  # player-draw round: prompt the PAL to look again after this long without it speaking
 MAX_LOOK_NUDGES = 3
 NARRATE_QUIET_SECONDS = 4  # auto-stroke: PAL narrates it only if both sides have been quiet this long
@@ -123,6 +124,11 @@ class Game:
     processed: List[str] = field(default_factory=list)  # idempotency keys already handled
     conversation_ended: bool = False
     transcript: Optional[List[Dict[str, Any]]] = None  # filled by the post-call webhook
+    latencies: List[float] = field(default_factory=list)  # seconds from player stops talking to PAL starts
+    last_user_stop_ts: Optional[float] = None
+    pal_speaking: bool = False  # from Tavus started/stopped_speaking events (live mode only)
+    pal_speaking_since: Optional[float] = None
+    pending_says: List[Dict[str, Any]] = field(default_factory=list)  # "say" effects held while the PAL talks
 
     # ---------- persistence ----------
     def to_dict(self) -> Dict[str, Any]:
@@ -201,31 +207,54 @@ def start_round(g: Game, now: float) -> List[Effect]:
     return effects
 
 
-def end_round(g: Game, now: float, winner: str, reason: str) -> List[Effect]:
-    """The backend-only reveal_answer. The PAL cannot call this."""
+def end_round(g: Game, now: float, reason: str) -> List[Effect]:
+    """The backend-only reveal_answer. The PAL cannot call this.
+    reason: "correct" (the guesser scores) | "out_of_guesses" | "timeout" (nobody scores)."""
     r = g.round()
     if r.status != "active":
         return []
     r.status = "guessed" if reason == "correct" else "missed"
+    winner = other(r.drawer) if reason == "correct" else None
     r.ended_at, r.end_reason, r.winner = now, reason, winner
-    g.score[winner] += 1
+    if winner:
+        g.score[winner] += 1
     last = r.index >= ROUNDS
     g.state = "GAME_OVER" if last else "REVEAL"
 
-    how = {"correct": f"the {'player' if winner == 'user' else 'PAL'} guessed it",
-           "out_of_guesses": "no guesses left", "timeout": "time ran out"}.get(reason, reason)
-    effects: List[Effect] = [{"kind": "context", "text": prompts.reveal_context(r.index, ROUNDS, r.word, g.score)}]
+    # Live finding: "the PAL guessed it" read to the PAL as "the player got it" ("No way, you got me!").
+    # Every reveal now tells the PAL, in the second person, exactly what happened and who won.
+    outcome = reveal_outcome(r)
+    react = (f"[game] {outcome} The word was {r.word}. "
+             f"Score: you {g.score['pal']}, the player {g.score['user']}.")
     if last:
-        effects.append({"kind": "say", "text": (
-            f"[game] Round {r.index} is over ({how}). The word was {r.word}. Game over. Final score: "
-            f"you {g.score['pal']}, player {g.score['user']}. Say a warm goodbye in two short sentences.")})
+        say = react + " That was the last round, the game is over. Say a warm goodbye in two short sentences."
+    else:
+        say = react + " React in one short sentence, then tell the player to say \"next round\" when ready."
+    # The reaction goes first so the PAL starts talking as the reveal appears on screen; the context
+    # overwrite (which clears the round's secret) follows right behind it.
+    effects: List[Effect] = [
+        {"kind": "say", "text": say},
+        {"kind": "context", "text": prompts.reveal_context(r.index, ROUNDS, r.word, g.score)},
+    ]
+    if last:
         effects.append({"kind": "end_conversation", "delay": 15})
         g.conversation_ended = True
-    else:
-        effects.append({"kind": "say", "text": (
-            f"[game] Round {r.index} is over ({how}). The word was {r.word}. React in one short "
-            "sentence and tell the player to say \"next round\" when ready.")})
     return effects
+
+
+def reveal_outcome(r: Round) -> str:
+    """What happened this round, said TO the PAL ("you" = the PAL). Guessers-only scoring."""
+    if r.drawer == "user":  # the PAL was guessing the player's drawing
+        if r.end_reason == "correct":
+            return "You guessed it, your guess was right! You get the point. Celebrate."
+        if r.end_reason == "out_of_guesses":
+            return "You used all 3 guesses without getting it. No point this round."
+        return "Time ran out before you guessed it. No point this round."
+    if r.end_reason == "correct":  # the player was guessing the PAL's drawing
+        return "The player guessed your drawing correctly. They get the point. Congratulate them."
+    if r.end_reason == "out_of_guesses":
+        return "The player used all 3 guesses without getting your drawing. No point this round."
+    return "Time ran out before the player guessed your drawing. No point this round."
 
 
 def quit_game(g: Game, now: float) -> List[Effect]:
@@ -245,17 +274,17 @@ def tick(g: Game, now: float) -> List[Effect]:
         return []
     r = g.round()
     if r.deadline is not None and now > r.deadline + LATE_GRACE_SECONDS:
-        return end_round(g, now, winner=r.drawer, reason="timeout")
+        return end_round(g, now, reason="timeout")
     effects: List[Effect] = []
     if r.drawer == "user":
         # Live findings: the PAL waits for the player to speak before it looks, and goes quiet after a
         # wrong guess. Whenever it has been quiet for LOOK_QUIET_SECONDS (and since the last prompt),
         # prompt it to look again, up to MAX_LOOK_NUDGES times a round.
         quiet_since = max(r.last_pal_speech_at or 0, r.started_at or 0, r.last_look_nudge_at or 0)
-        if r.look_nudges < MAX_LOOK_NUDGES and now - quiet_since >= LOOK_QUIET_SECONDS:
+        if not g.pal_speaking and r.look_nudges < MAX_LOOK_NUDGES and now - quiet_since >= LOOK_QUIET_SECONDS:
             r.look_nudges += 1
             r.last_look_nudge_at = now
-            effects.append({"kind": "say", "text": (
+            effects.append({"kind": "say", "droppable": True, "text": (
                 "[game] Look at the camera now and keep guessing, in your own words (do not repeat this message). "
                 "Describe what you see and guess, or change your guess if you already made one. Only if you "
                 "truly see no paper, ask the player to hold it up.")})
@@ -275,7 +304,7 @@ def tick(g: Game, now: float) -> List[Effect]:
         quiet_since = max(r.last_user_speech_at or 0, r.started_at or 0)
         if not r.nudged and now - quiet_since >= SILENCE_NUDGE_SECONDS:
             r.nudged = True
-            effects.append({"kind": "say", "text": (
+            effects.append({"kind": "say", "droppable": True, "text": (
                 "[game] The player has been quiet for a while. Encourage them once, in one short sentence: "
                 "they can shout a guess, or say 'skip' for another line.")})
     return effects
@@ -371,13 +400,13 @@ def record_guess(g: Game, guesser: str, raw: str, guess: Optional[str], now: flo
         entry.correct = True
         entry.note = "correct"
         g.guesses.append(entry)
-        return entry, end_round(g, now, winner=guesser, reason="correct")
+        return entry, end_round(g, now, reason="correct")
 
     r.wrong_guesses.append(guess)
     entry.note = "wrong"
     g.guesses.append(entry)
     if r.guesses_used >= MAX_GUESSES:
-        return entry, end_round(g, now, winner=r.drawer, reason="out_of_guesses")
+        return entry, end_round(g, now, reason="out_of_guesses")
 
     effects: List[Effect] = []
     if guesser == "user" and r.drawer == "pal":  # wrong guess -> the PAL draws another line
@@ -398,6 +427,10 @@ def handle_user_speech(g: Game, text: str, now: float, source: str = "speech") -
         if scorer.is_start_intent(text):
             effects = start_round(g, now)
             g.round().started_by = "voice"
+            if g.round().drawer == "user":
+                # Live finding: the PAL already answers "let's start" itself ("Let's go!"). A second
+                # scripted line made it talk twice and added ~2s. Keep only the silent context update.
+                effects = [e for e in effects if e["kind"] != "say"]
             return effects
         return []
     if g.state not in ACTIVE_STATES:
@@ -448,13 +481,57 @@ def handle_pal_speech(g: Game, text: str, now: float) -> List[Effect]:
                                counted=False, note="honesty fallback: asked to hold it closer",
                                source="transcript", at=now))
         return []
+    guesses = scorer.extract_pal_guesses(text)
+    # Live findings (Nov 26): a right guess in the sentence wins and the other guesses around it are not
+    # extra tries; but the word in a mere description ("A heart and a cone... is it an ice cream?")
+    # is not a guess. Only the extracted guesses count.
+    right = [x for x in guesses if scorer.matches_word(x, r.word)]
+    if right:
+        guesses = right[:1]
     effects: List[Effect] = []
-    for guess in scorer.extract_pal_guesses(text):
+    for guess in guesses:
         if g.state not in ACTIVE_STATES:
             break
         _, fx = record_guess(g, "pal", text, guess, now, "transcript")
         effects += fx
     return effects
+
+
+# ---------------------------------------------------------------- not talking over the PAL
+
+MAX_HOLD_SECONDS = 8  # never hold a message longer than this (a missed "stopped speaking" event)
+
+
+def pal_started_speaking(g: Game, now: float) -> None:
+    g.pal_speaking, g.pal_speaking_since = True, now
+
+
+def pal_stopped_speaking(g: Game, now: float) -> None:
+    g.pal_speaking, g.pal_speaking_since = False, None
+
+
+def route_effects(g: Game, effects: List[Effect], now: float) -> List[Effect]:
+    """Live finding (Nov 26): every "say" (conversation.respond) is a new turn, and Tavus interrupts
+    whatever the PAL is saying to answer it, so a timer prompt or a reveal cut the PAL mid-sentence.
+    While the PAL is talking, "say" effects wait here and go out when it stops (or after
+    MAX_HOLD_SECONDS). A held prompt marked droppable (look again / encourage) is thrown away if the
+    round has ended by the time it would go out. Silent effects (context, tool results) never wait."""
+    talking = g.pal_speaking and now - (g.pal_speaking_since or now) < MAX_HOLD_SECONDS
+    out: List[Effect] = []
+    if not talking and g.pending_says:
+        for e in g.pending_says:
+            if e.get("droppable") and g.state not in ACTIVE_STATES:
+                continue
+            out.append(e)
+        g.pending_says = []
+    for e in effects:
+        if e["kind"] == "say" and talking:
+            g.pending_says.append(e)
+        elif e["kind"] == "say" and e.get("droppable") and g.state not in ACTIVE_STATES:
+            continue
+        else:
+            out.append(e)
+    return out
 
 
 # ---------------------------------------------------------------- views

@@ -28,6 +28,7 @@ When YOU are drawing:
 
 Between rounds:
 - The player starts the next round by saying "let's start", "go" or "ready", or by pressing the button. The referee starts it; you never start a round yourself. If they seem ready, invite them to say "let's start".
+- When the player says they are ready or says "let's start", answer with one short hype line like "Let's go, start drawing!" The round starts by itself a second later. Never say you are waiting for the game or for a word.
 
 Always:
 - Reply in one or two short sentences. Wait for the player to finish speaking. Do not ask questions you do not need.
@@ -42,7 +43,7 @@ LOBBY_CONTEXT = (
     "[game] The game has not started yet. You just said hi and asked if they want the rules. "
     "If they want the rules, explain them in your own words in two or three short sentences: in their rounds they "
     "get a secret word, draw it on paper and hold it up, and you guess out loud; in your rounds you draw on the "
-    "canvas and they shout guesses; 6 rounds, 45 seconds each, 3 guesses, win the round, win the point. "
+    "canvas and they shout guesses; 6 rounds, 45 seconds each, 3 guesses; a right guess scores a point for the guesser, a miss scores nothing. "
     "Then tell them to grab a thick black pen and say \"let's start\" when ready. If they want to jump in, tell "
     "them to say \"let's start\". Answer any other question about the game briefly. Round 1 is theirs: they draw, "
     "you guess. No round is active: do not guess or draw until the [game] message that starts round 1."

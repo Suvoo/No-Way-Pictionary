@@ -5,7 +5,8 @@ const REPO_URL = (import.meta.env.VITE_REPO_URL as string | undefined) || "https
 
 // Final screen, in two parts so the video stage can stay up for Pip's goodbye:
 //   ScoreHeadline: final score + buttons (sits in the rail next to the video)
-//   ScoreDetails:  all 6 words, who won each round, and the full guess log (the audit trail)
+//   ScoreDetails:  all 6 words and who scored each round. The full guess log (audit trail) is not
+//                  shown to players; it stays in the API (GET /api/games/{id}/scoreboard) and the database.
 
 export function ScoreHeadline({ view, pal, onPlayAgain, onHome }: { view: GameView; pal: string; onPlayAgain: () => void; onHome: () => void }) {
   const { user, pal: p } = view.score;
@@ -47,7 +48,7 @@ export function ScoreDetails({ view, pal }: { view: GameView; pal: string }) {
               <th className="pr-3">Drawer</th>
               <th className="pr-3">Word</th>
               <th className="pr-3">Guesses</th>
-              <th className="pr-3">Winner</th>
+              <th className="pr-3">Point to</th>
               <th>How</th>
             </tr>
           </thead>
@@ -66,20 +67,6 @@ export function ScoreDetails({ view, pal }: { view: GameView; pal: string }) {
         </table>
       </div>
 
-      <details className="sketch bg-white p-4">
-        <summary className="cursor-pointer font-bold">Guess log ({view.guess_log.length}): every guess, checked by the backend referee</summary>
-        <ul className="mt-3 space-y-1 text-sm">
-          {view.guess_log.map((g, i) => (
-            <li key={i} className="flex flex-wrap gap-x-2">
-              <span className="w-10 text-ink-soft">R{g.round}</span>
-              <span className="w-14 font-semibold">{g.guesser === "user" ? "You" : pal}</span>
-              <span>{g.correct ? "✅" : g.counted ? "❌" : "·"}</span>
-              <span className="font-medium">{g.guess ?? "-"}</span>
-              <span className="text-ink-soft">"{g.text}" ({g.note}, via {g.source}, {new Date(g.at * 1000).toLocaleTimeString()})</span>
-            </li>
-          ))}
-        </ul>
-      </details>
     </div>
   );
 }

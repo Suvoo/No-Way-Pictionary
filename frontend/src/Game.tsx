@@ -342,14 +342,14 @@ function Reveal({ view, pal, busy, onNext }: { view: GameView; pal: string; busy
       ? r.drawer === "user" ? `${pal} guessed your drawing.` : "You guessed it!"
       : r.end_reason === "timeout" ? "Time ran out." : "No guesses left.";
   return (
-    <Card className={youWon ? "bg-mint/20" : "bg-sky/10"}>
+    <Card className={youWon ? "bg-mint/20" : r.winner === "pal" ? "bg-sky/10" : "bg-white"}>
       <p className="text-sm font-bold tracking-wide uppercase">Round {r.index} reveal</p>
       <p className="mt-1">The word was</p>
       <motion.p initial={{ scale: 0.6, rotate: -4 }} animate={{ scale: 1, rotate: 0 }} className="font-marker text-5xl">
         {r.revealed_word}
       </motion.p>
       <p className="mt-3 text-lg font-bold">
-        {reason} {youWon ? "Point to you! 🎉" : `Point to ${pal}.`}
+        {reason} {r.winner === "user" ? "Point to you! 🎉" : r.winner === "pal" ? `Point to ${pal}.` : "No point this round."}
       </p>
       {r.flags.length > 0 && <p className="mt-1 text-sm text-ink-soft">Referee note: {r.flags.join(", ")}.</p>}
       <BigButton onClick={onNext} disabled={busy} color="bg-mint text-white">

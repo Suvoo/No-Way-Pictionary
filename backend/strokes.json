@@ -3,7 +3,7 @@
  "templates": {
   "star": [
    {
-    "label": "a long slanted line",
+    "label": "a zig-zag of three long slanted lines",
     "shapes": [
      {
       "type": "line",
@@ -15,35 +15,7 @@
        [
         73.5,
         84.4
-       ]
-      ]
-     }
-    ]
-   },
-   {
-    "label": "a line back up to the left",
-    "shapes": [
-     {
-      "type": "line",
-      "points": [
-       [
-        73.5,
-        84.4
        ],
-       [
-        12,
-        39.6
-       ]
-      ]
-     }
-    ]
-   },
-   {
-    "label": "a flat line across",
-    "shapes": [
-     {
-      "type": "line",
-      "points": [
        [
         12,
         39.6
@@ -57,7 +29,7 @@
     ]
    },
    {
-    "label": "a line slanting down left",
+    "label": "two more lines closing it into a pointy shape",
     "shapes": [
      {
       "type": "line",
@@ -66,20 +38,6 @@
         88,
         39.6
        ],
-       [
-        26.5,
-        84.4
-       ]
-      ]
-     }
-    ]
-   },
-   {
-    "label": "a line back to the top point",
-    "shapes": [
-     {
-      "type": "line",
-      "points": [
        [
         26.5,
         84.4

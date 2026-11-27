@@ -80,12 +80,12 @@ def test_utterance_relay_scores_user_speech():
     client.post(f"/api/games/{gid}/guesses", headers=h, json={"guesser": "pal", "text": "rocket"})
     client.post(f"/api/games/{gid}/guesses", headers=h, json={"guesser": "pal", "text": "banana"})
     v = client.get(f"/api/games/{gid}", headers=h).json()
-    assert v["state"] == "REVEAL" and v["score"] == {"user": 1, "pal": 0}  # PAL stumped -> drawer wins
+    assert v["state"] == "REVEAL" and v["score"] == {"user": 0, "pal": 0}  # PAL stumped -> nobody scores (guessers only)
     client.post(f"/api/games/{gid}/start-round", headers=h)
     ev = {"event_type": "conversation.utterance", "inference_id": "i1",
           "properties": {"role": "user", "speech": f"Is it a {_word(gid, 2)}?"}}
     assert client.post(f"/api/games/{gid}/events", headers=h, json=ev).json()["handled"]
-    assert client.get(f"/api/games/{gid}", headers=h).json()["score"]["user"] == 2
+    assert client.get(f"/api/games/{gid}", headers=h).json()["score"]["user"] == 1
 
 
 def test_full_game_and_scoreboard():
@@ -136,3 +136,12 @@ def test_garbage_events_do_not_crash():
                {"event_type": "conversation.tool_call", "properties": {"name": "draw_next_stroke", "arguments": "{bad json"}},
                {"event_type": "something.else"}]:
         assert client.post(f"/api/games/{gid}/events", headers=h, json=ev).status_code == 200
+
+
+def test_speaking_events_measure_latency():
+    gid, h = _new()
+    ev = lambda kind, role, ts: {"event_type": f"conversation.{kind}_speaking", "timestamp": ts, "properties": {"role": role}}
+    for e in [ev("stopped", "user", 100.0), ev("started", "pal", 101.25), ev("started", "pal", 101.25),  # duplicate ignored
+              ev("stopped", "user", 110.0), ev("started", "replica", 110.5), ev("started", "pal", 110.8)]:
+        assert client.post(f"/api/games/{gid}/events", headers=h, json=e).status_code == 200
+    assert store.get(gid).latencies == [1.25, 0.8]

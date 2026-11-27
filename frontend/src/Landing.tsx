@@ -75,7 +75,7 @@ const STEPS = [
   {
     n: "3",
     title: "You take turns.",
-    body: "6 rounds, 45 seconds each, 3 guesses per round. Guess it and you win the round. Stump them and you win it. Reveal after every round.",
+    body: "6 rounds, 45 seconds each, 3 guesses per round. Guess it right and you score a point. Miss it and nobody does. Reveal after every round.",
     color: "bg-tomato text-white",
   },
 ];
@@ -113,9 +113,9 @@ export default function Landing({ onPlay, starting, error }: { onPlay: () => voi
               A live video game
             </p>
             <h1 className="font-marker text-5xl leading-[1] sm:text-7xl">
-              <span className="strike">No-Way</span> <span className="highlight px-1">Pictionary</span>
+              Doodle with <span className="highlight px-1">Pip</span>
             </h1>
-            <p className="max-w-xl text-xl font-semibold sm:text-2xl">The AI guesses your doodles. Then you guess its doodles.</p>
+            <p className="max-w-xl text-xl font-semibold sm:text-2xl">Pip guesses your doodles out loud. Then you guess Pip's.</p>
           </div>
           <div className="grid justify-items-start gap-2">
             <button onClick={onPlay} disabled={starting} className="sketch-btn bg-mint px-7 py-4 text-xl font-extrabold text-white">
@@ -145,7 +145,7 @@ export default function Landing({ onPlay, starting, error }: { onPlay: () => voi
               <span className="font-marker text-3xl">You 3 : 2 Pip</span>
               <BirdDoodle />
             </div>
-            <p className="text-sm font-semibold">3. Six rounds. Win the round, win the point.</p>
+            <p className="text-sm font-semibold">3. Six rounds. Guess it right, get the point.</p>
           </div>
         </div>
       </header>

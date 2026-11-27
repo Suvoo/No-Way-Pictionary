@@ -1,13 +1,13 @@
-# No-Way Pictionary
+# Doodle with Pip
 
-**The AI guesses your doodles. Then you guess its doodles.** A turn-based Pictionary game (a reverse Pictionary) against a live Tavus video human. In your rounds you draw on real paper and hold it up, and the AI (Pip) watches through your camera with Raven-2 and guesses out loud. In its rounds it sketches on a canvas, one line at a time, and you shout your guess.
+**Pip guesses your doodles out loud. Then you guess Pip's.** A turn-based Pictionary-style drawing game against a live Tavus video human. In your rounds you draw on real paper and hold it up, and the AI (Pip) watches through your camera with Raven-2 and guesses out loud. In its rounds it sketches on a canvas, one line at a time, and you shout your guess.
 
 > **A PAL is a prompt. This is a system.** The PAL is one component: face, voice and guesser. The game state machine, the secret handling, the turn-taking, the referee that scores every guess, the stroke templates and the eval are the application, and none of that lives in the Tavus dashboard.
 
 - **Live link:** `TODO: add after deploy`
 - **Repo:** https://github.com/Suvoo/No-Way-Pictionary
 - **Run it locally in 3 steps:** see [Quick start](#quick-start). It works with **no Tavus key** (demo mode).
-- **Check it works:** `make check` runs the golden-set eval (28 cases), API tests and the frontend build.
+- **Check it works:** `make check` runs the golden-set eval (37 cases), API tests and the frontend build.
 
 ---
 
@@ -18,16 +18,16 @@
 - **It is original on Tavus.** No Pictionary or sketch-guessing build in the Tavus Community Showcase or official examples (checked Nov 26 2026). Non-Tavus analogues (Mattel Pictionary Vs. AI, Quick, Draw!) are one-sided: you draw, a classifier guesses, nobody draws back.
 - **It exercises the FDE loop:** take a vague brief, build one narrow path, show it works with an eval, and explain the trade-offs.
 
-**Who it is for:** anyone with a laptop or phone, paper and a pen. **Success measure:** a full game finishes in about 6 to 7 minutes with a final score, all 6 words, and a guess log showing every guess, how many tries it took, and whether it was right.
+**Who it is for:** anyone with a laptop or phone, paper and a pen. **Success measure:** a full game finishes in about 6 to 7 minutes with a final score, all 6 words and who scored each round, plus a guess log (API and database) showing every guess, how many tries it took, and whether it was right.
 
 ## How to play (the 30 second version)
 
 1. Open the link, grab paper and a **thick black pen**, press **Play**, allow camera and mic. Pip says hi and asks if you want the rules; ask anything, then say **"let's start"** (or press Start).
-2. **Round 1 (you draw):** you see a secret word the AI cannot see. Draw it, hold it up, press **Look now**. It guesses out loud: right within 3 guesses and it wins the round, otherwise you do.
-3. **Round 2 (it draws):** a canvas appears. It draws its secret word stroke by stroke. Shout your guess (or type it). Get it within 3 guesses and you win the round.
-4. Alternate for 6 rounds, 45 seconds each. Final scoreboard with every word and the full guess log.
+2. **Round 1 (you draw):** you see a secret word the AI cannot see. Draw it, hold it up, press **Look now**. It guesses out loud: right within 3 guesses and it scores a point.
+3. **Round 2 (it draws):** a canvas appears. It draws its secret word stroke by stroke. Shout your guess (or type it). Get it within 3 guesses and you score a point.
+4. Alternate for 6 rounds, 45 seconds each. Final scoreboard with every word and who scored each round.
 
-Scoring: **every round has a winner.** Guess right within 3 tries and the guesser gets the point. Otherwise the drawer wins it for stumping them.
+Scoring: **guessers only.** Guess right within 3 tries and you get the point; a missed round scores for nobody. So the score is who guessed more, and drawing badly on purpose never pays. (An earlier rule gave the drawer the point on a miss, which rewarded bad drawings.)
 
 ---
 
@@ -106,7 +106,7 @@ Split deploy is also supported (frontend on Vercel with `VITE_API_URL=https://<b
 - *Its round:* the word goes to the PAL only, via `conversation.overwrite_llm_context` at the moment the round starts (server-side, not broadcast to the room). The browser gets stroke geometry, never the word or the stroke labels. `test_api.py` and eval case 15 check this.
 - Each round **overwrites** the PAL's context, so it never holds a future word or the player's word.
 
-**Referee (`scorer.py` + `game.record_guess`).** The PAL never scores itself. A guess is correct if the secret or a variant appears as a whole word ("bike" counts for bicycle, "kitty" for cat), case- and punctuation-insensitive, with plurals. PAL guesses are read from what it says out loud ("is it a X?" patterns), so the score always matches what the player heard. Player guesses come from their speech (short utterances only, so chatter is not a guess) or the typed box. A speech guess that is one or two letters off the word ("slow man" for snowman) is treated as a likely mishearing: it does not use up a guess, and the PAL asks the player to say it again. Between rounds, "let's start", "ready", "go" or "next round" start the next round, the same as the button.
+**Referee (`scorer.py` + `game.record_guess`).** The PAL never scores itself. A guess is correct if the secret or a variant appears as a whole word ("bike" counts for bicycle, "kitty" for cat), case- and punctuation-insensitive, with plurals. PAL guesses are read from what it says out loud, so the score always matches what the player heard: questions ("is it a X?") and exclamations ("it's a X!") are guesses, descriptions ("it looks like a scoop on a triangle") are not, and if one of the guesses in a sentence is right, only that one counts (the word inside a description, "a heart and a cone... is it an ice cream?", is not a guess). **Not talking over the PAL:** every backend line the PAL should say (`conversation.respond`) is a new turn that interrupts whatever it is saying, so the backend tracks `started/stopped_speaking` and holds those lines until the PAL finishes (max 8s); timer prompts that are stale by then are dropped (`game.route_effects`). Round results are told to the PAL in the second person ("You guessed it… you win this round"), after it once read "the PAL guessed it" as the player winning. Player guesses come from their speech or the typed box. Short utterances are guesses; a question ("What is it?") is not; in a longer sentence, a word-bank word is the guess ("I just said a ladder" guesses ladder) and other chatter is ignored. A speech guess that is one or two letters off the word ("slow man" for snowman) is treated as a likely mishearing: it does not use up a guess, and the PAL asks the player to say it again. Between rounds, "let's start", "ready", "go" or "next round" start the next round, the same as the button.
 
 **PAL tool (`tools.py`).** `draw_next_stroke()` for its drawing. (A `submit_guess` tool was retired after two live games: the PAL never called it, so the referee scores what the PAL says out loud, which is also what the player hears.) The PAL decides *when* to draw, and the template decides *what* is drawn, so it cannot draw nonsense or the wrong word. `reveal_answer` (`game.end_round`) is backend-only on purpose, so the PAL cannot end a round early. The hint is a player button, enabled only in PAL-draw rounds, because a hint in your round would leak your word to the PAL.
 
@@ -158,8 +158,8 @@ curl -s -X POST localhost:8000/api/games/Xk2../events -H 'X-Player-Token: 9fQ..'
 **You don't have to trust the PAL.** The backend picks the words, keeps each secret on the right side, checks every spoken guess against the secret, and logs every guess with a timestamp, its source (tool, transcript, speech, typed) and why it did or did not count. The PAL talks; the backend referees.
 
 1. **Measured spike (before building, Nov 26 2026):** a Raven-2 PAL, 5 easy words (star, house, fish, bicycle, cat), thick black marker, held steady for 3s, good room light, real phone browser: **5/5 correct within 3 guesses.** That is the only perception result claimed. It is 5 easy words, not all 345 categories.
-2. **Golden-set eval (`make eval`):** 28 scripted cases (including replays of real live-game transcripts) replayed against the real engine with a fake clock. They prove the game logic: scoring, timers, synonyms, repeats, secret handling, cheat flags, the honesty fallback, and that the PAL cannot guess in its own round.
-3. **Live audit trail:** the scoreboard shows all 6 words and every guess. Anyone can re-score a game by hand from the log.
+2. **Golden-set eval (`make eval`):** 37 scripted cases (including replays of real live-game transcripts) replayed against the real engine with a fake clock. They prove the game logic: scoring, timers, synonyms, repeats, secret handling, cheat flags, the honesty fallback, and that the PAL cannot guess in its own round.
+3. **Live audit trail:** every guess is stored with its raw text, source and why it did or did not count, in the database and in `GET /api/games/{id}/scoreboard` (`guess_log`). Players see only the words and who scored; anyone checking the game can re-score it by hand from the log.
 
 ### Eval results
 
@@ -168,11 +168,11 @@ PASS  # 1  Easy word, clear drawing: PAL guesses star first try
 PASS  # 2  Medium word: PAL commits to car, changes its mind to bicycle
 PASS  # 3  Hard word is excluded from the v1 word bank
 PASS  # 4  Wrong guess then correct: scored after 2 guesses, not 1
-PASS  # 5  Timer expiry: no correct guess in 45s, drawer wins, game advances
+PASS  # 5  Timer expiry: no correct guess in 45s, nobody scores, game advances
 PASS  # 6  No duplicate words in a game (200 seeds), Play Again avoids last game's words
 PASS  # 7  PAL-draw round: player says house after stroke 3
-PASS  # 8  PAL-draw round: player wrong 3 times, reveal shows key, PAL wins
-PASS  # 9  Silent player: PAL nudges once after 10s, backend keeps drawing
+PASS  # 8  PAL-draw round: player wrong 3 times, reveal shows key, nobody scores
+PASS  # 9  Silent player: PAL nudges once after 15s, backend keeps drawing
 PASS  #10  Cannot see paper: honesty fallback is logged, not counted as a guess
 PASS  #11  Synonym counts: 'kitty' is accepted for cat
 PASS  #12  Repeated wrong guess does not burn a second guess
@@ -181,7 +181,7 @@ PASS  #14  Late guess after grace window is rejected
 PASS  #15  Anti-cheat: PAL-draw word never appears in what the browser sees
 PASS  #16  Player says their own word out loud while drawing: flagged in the audit log
 PASS  #17  PAL tries to guess in its own drawing round: refused
-PASS  #18  Every v1 word has 3-7 stroke template strokes and a hint
+PASS  #18  Every v1 word has 2-7 template strokes and a hint
 PASS  #19  Live replay (Nov 26): a growing utterance is one guess, not three
 PASS  #20  Live replay (Nov 26): PAL that has not guessed is prompted to look, then again if still quiet
 PASS  #21  A PAL that keeps talking and guessing is not prompted
@@ -192,8 +192,17 @@ PASS  #25  "I'm not ready yet" does not start the round
 PASS  #26  Saying "Next round!" after a reveal starts the next round
 PASS  #27  Live replay (Nov 26): "slow man" for snowman is a near miss, not a wasted guess
 PASS  #28  Short words are never near misses: "car" for cat is a real wrong guess
+PASS  #29  Live replay (Nov 26): "What is it?" is a question, not a wasted guess
+PASS  #30  Live replay (Nov 26): "Uh, bro, I just said a ladder?" counts as the guess ladder
+PASS  #31  Live replay (Nov 26): voice start of a player round sends no second scripted line
+PASS  #32  Long chatter without a game word is still not a guess
+PASS  #33  Live replay (Nov 26): "it looks like a scoop on a triangle" is a description, not a wasted guess
+PASS  #34  Live replay (Nov 26): when Pip guesses right, the reveal tells Pip it got the point (not "you got me")
+PASS  #35  When the player guesses Pip's drawing, the reveal tells Pip the player got the point
+PASS  #36  Live replay (Nov 26): "A heart and a cone... is it an ice cream?" guesses ice cream, not heart
+PASS  #37  Guessers-only scoring: a missed round scores for nobody, a right guess scores for the guesser
 
-28/28 passed
+37/37 passed
 ```
 
 **First live game (Nov 26 2026):** a full 6-round game against the live PAL, 4-2. Secrets held, the PAL's guesses were refereed through both the tool and the speech fallback, and the call closed itself. It also surfaced 4 problems that are now fixed and covered by cases 13 and 19 to 22: a growing utterance counted as 3 guesses, the PAL's correct guess arrived 1s after a 1.5s grace window, the PAL waited for the player to speak before looking, and strokes drawn by the timer were never narrated.
@@ -228,7 +237,7 @@ PASS  #28  Short words are never near misses: "car" for cat is a real wrong gues
 
 ## Edge cases
 
-Handled in v1: synonyms and plurals · repeated guesses · the same guess heard twice (tool + speech) · late guesses (3s grace, then rejected) · speech-to-text near misses ("slow man" for snowman: not counted, the PAL asks again; never for 3-letter words) · starting by voice ("let's start", "ready", "next round"; "not ready" and "wait" win) · a growing or cut-off utterance (scored once, fragments ignored) · a PAL that waits instead of looking (prompted at 8s and 24s) · timer expiry (drawer wins) · duplicate words in a game · Play Again avoiding the last game's words · the player saying their own word out loud (flagged) · the PAL saying its own word (flagged) · the PAL guessing in its own round (refused) · "can't see, hold it closer" (logged, not a guess) · a silent player (one nudge + auto strokes) · a PAL that stops drawing (auto stroke every 7s) · duplicate webhooks and relayed events (idempotent) · garbage or malformed events (ignored, never crash) · a dropped call (Reconnect, same game) · a backend restart (state persisted after every change) · the conversation left open (closed at game end, on Home or Play again, plus a 20 min `max_call_duration` cap).
+Handled in v1: synonyms and plurals · repeated guesses · the same guess heard twice (tool + speech) · late guesses (3s grace, then rejected) · speech-to-text near misses ("slow man" for snowman: not counted, the PAL asks again; never for 3-letter words) · starting by voice ("let's start", "ready", "next round"; "not ready" and "wait" win) · a growing or cut-off utterance (scored once, fragments ignored) · a PAL that waits instead of looking (prompted at 8s and 24s) · timer expiry (nobody scores) · duplicate words in a game · Play Again avoiding the last game's words · the player saying their own word out loud (flagged) · the PAL saying its own word (flagged) · the PAL guessing in its own round (refused) · "can't see, hold it closer" (logged, not a guess) · a silent player (one nudge + auto strokes) · a PAL that stops drawing (auto stroke every 7s) · duplicate webhooks and relayed events (idempotent) · garbage or malformed events (ignored, never crash) · a dropped call (Reconnect, same game) · a backend restart (state persisted after every change) · the conversation left open (closed at game end, on Home or Play again, plus a 20 min `max_call_duration` cap).
 
 Noted, not built in v1: writing the word on paper (the prompt tells the PAL to call it out, with no automatic detection) · holding up a phone image or print · a second person shouting guesses (no speaker ID) · lined or grid paper, a mirrored front camera, glare, shaky hands · rude drawings (prompt-level only) · rotating the phone mid-round · running out of Tavus minutes mid-game (the create call fails cleanly with a message, but there is no warning mid-game) · a slow connection delaying Raven's view.
 
@@ -245,7 +254,7 @@ Checked against `https://docs.tavus.io/openapi.yaml` and the docs pages. If anyt
 - **Live utterances and tool calls go to the browser only**, over the Daily data channel (`conversation.utterance` with `role` `user` / `pal`, plus a legacy duplicate with `replica`; `conversation.tool_call`). Webhooks are lifecycle and post-call only. Hence the browser relay.
 - **The server can push into a live call:** `POST /v2/conversations/{id}/send-app-message` accepts `overwrite_llm_context`, `append_llm_context`, `respond`, `tool_result` and more (120 req/min, 64 KB). This is how per-round secrets reach the PAL without ever sitting in its context early.
 - **Current field names are `pal_id` + `face_id`.** The Santa Demo's `persona_id` / `replica_id` are the legacy names. PAL fields used: `pal_name`, `system_prompt`, `default_face_id`, `layers.perception.perception_model: "raven-2"`, `visual_awareness_queries`, `callouts`.
-- **Speech and turn-taking settings on the PAL** (live findings): `layers.stt.hotwords` lists the 28 game words and the voice commands ("snowman" was transcribed as "slow man"), and `layers.conversational_flow` uses `turn_taking_patience: high` and `pal_interruptibility: high` (the PAL replied while the player was mid-sentence). The greeting is a short `custom_greeting` question; the PAL explains the rules in its own words from the per-conversation context.
+- **Speech and turn-taking settings on the PAL** (live findings): `layers.stt.hotwords` lists the 28 game words and the voice commands ("snowman" was transcribed as "slow man"), and `layers.conversational_flow` uses `turn_taking_patience: medium` and `pal_interruptibility: high`. We tried `high` patience after the PAL talked over a player, but every reply then felt late; medium patience plus high interruptibility (the PAL stops the moment the player speaks) is the balance. The browser also relays `conversation.started_speaking` / `stopped_speaking`, and the backend logs the gap from "player stopped talking" to "PAL started talking" for every turn (stored per game as `latencies`). The greeting is a short `custom_greeting` question; the PAL explains the rules in its own words from the per-conversation context.
 - **Tools** are created with `POST /v2/tools` and attached with `POST /v2/pals/{id}/tools` (inline `layers.llm.tools` is legacy). Delivery `app_message` (default) goes to the browser; `delivery.api` makes Tavus call an HTTPS URL directly.
 - **The conversation response** has `conversation_url` (for the Daily SDK; used here) and `room_url` (the Tavus-hosted page). End with `POST /v2/conversations/{id}/end`.
 

@@ -22,7 +22,14 @@ type Props = {
 };
 
 type Status = "joining" | "joined" | "left" | "error" | "camera-blocked";
-const RELAYED = new Set(["conversation.utterance", "conversation.tool_call"]);
+// Utterances and tool calls drive the game; started/stopped speaking events let the backend log the
+// real turn latency (player stops talking -> Pip starts talking).
+const RELAYED = new Set([
+  "conversation.utterance",
+  "conversation.tool_call",
+  "conversation.started_speaking",
+  "conversation.stopped_speaking",
+]);
 
 function playable(t?: { state?: string; persistentTrack?: MediaStreamTrack }): MediaStreamTrack | null {
   return t && t.state === "playable" && t.persistentTrack ? t.persistentTrack : null;
@@ -73,9 +80,9 @@ export default function CviEmbed({ url, palName, onRelay, onCaption, caption, ga
     call.on("app-message", (ev) => {
       const data = ev?.data as { message_type?: string; event_type?: string; properties?: { role?: string; speech?: string } };
       if (!data || data.message_type !== "conversation" || !data.event_type || !RELAYED.has(data.event_type)) return;
+      if ((data.properties as { role?: string } | undefined)?.role === "replica") return; // legacy duplicates of "pal" events
       if (data.event_type === "conversation.utterance") {
         const role = data.properties?.role;
-        if (role === "replica") return; // legacy duplicate of the "pal" utterance
         const text = data.properties?.speech ?? "";
         if ((role === "user" || role === "pal") && text && !text.startsWith("[game]")) {
           captionRef.current({ role, text, at: Date.now() });

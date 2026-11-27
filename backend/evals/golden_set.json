@@ -86,7 +86,7 @@
     },
     {
       "id": 5,
-      "title": "Timer expiry: no correct guess in 45s, drawer wins, game advances",
+      "title": "Timer expiry: no correct guess in 45s, nobody scores, game advances",
       "mode": "user_draw",
       "word": "fish",
       "events": [
@@ -100,7 +100,7 @@
         }
       ],
       "expect": {
-        "winner": "user",
+        "winner": null,
         "end_reason": "timeout",
         "state": "REVEAL",
         "next_round_starts": true
@@ -143,7 +143,7 @@
     },
     {
       "id": 8,
-      "title": "PAL-draw round: player wrong 3 times, reveal shows key, PAL wins",
+      "title": "PAL-draw round: player wrong 3 times, reveal shows key, nobody scores",
       "mode": "pal_draw",
       "word": "key",
       "events": [
@@ -161,7 +161,7 @@
         }
       ],
       "expect": {
-        "winner": "pal",
+        "winner": null,
         "end_reason": "out_of_guesses",
         "revealed_word": "key",
         "guesses_used": 3
@@ -169,7 +169,7 @@
     },
     {
       "id": 9,
-      "title": "Silent player: PAL nudges once after 10s, backend keeps drawing",
+      "title": "Silent player: PAL nudges once after 15s, backend keeps drawing",
       "mode": "pal_draw",
       "word": "umbrella",
       "events": [
@@ -178,11 +178,15 @@
           "tick": true
         },
         {
-          "t": 10.5,
+          "t": 12,
           "tick": true
         },
         {
-          "t": 12,
+          "t": 15.5,
+          "tick": true
+        },
+        {
+          "t": 17,
           "tick": true
         }
       ],
@@ -283,7 +287,7 @@
         }
       ],
       "expect": {
-        "winner": "pal",
+        "winner": null,
         "end_reason": "timeout"
       }
     },
@@ -349,10 +353,10 @@
     },
     {
       "id": 18,
-      "title": "Every v1 word has 3-7 stroke template strokes and a hint",
+      "title": "Every v1 word has 2-7 template strokes and a hint",
       "mode": "templates",
       "expect": {
-        "min_strokes": 3,
+        "min_strokes": 2,
         "max_strokes": 7
       }
     },
@@ -597,6 +601,177 @@
       "expect": {
         "guesses_used": 1,
         "status": "active"
+      }
+    },
+    {
+      "id": 29,
+      "title": "Live replay (Nov 26): \"What is it?\" is a question, not a wasted guess",
+      "mode": "pal_draw",
+      "word": "heart",
+      "events": [
+        {
+          "t": 9,
+          "user": "What is it?"
+        },
+        {
+          "t": 14,
+          "user": "Uh, like a heart."
+        }
+      ],
+      "expect": {
+        "winner": "user",
+        "guesses_used": 1
+      }
+    },
+    {
+      "id": 30,
+      "title": "Live replay (Nov 26): \"Uh, bro, I just said a ladder?\" counts as the guess ladder",
+      "mode": "pal_draw",
+      "word": "star",
+      "events": [
+        {
+          "t": 19,
+          "user": "Uh, bro, I just said a ladder?"
+        }
+      ],
+      "expect": {
+        "guesses_used": 1,
+        "first_guess": "ladder",
+        "status": "active"
+      }
+    },
+    {
+      "id": 31,
+      "title": "Live replay (Nov 26): voice start of a player round sends no second scripted line",
+      "mode": "lobby",
+      "word": "star",
+      "events": [
+        {
+          "t": 1,
+          "user": "Bro, so let's start."
+        }
+      ],
+      "expect": {
+        "state": "USER_DRAW",
+        "started_by": "voice",
+        "say_count_contains": [
+          "Round 1 starts now",
+          0
+        ]
+      }
+    },
+    {
+      "id": 32,
+      "title": "Long chatter without a game word is still not a guess",
+      "mode": "pal_draw",
+      "word": "star",
+      "events": [
+        {
+          "t": 5,
+          "user": "hmm okay let me think about this one for a second"
+        }
+      ],
+      "expect": {
+        "guesses_used": 0,
+        "status": "active"
+      }
+    },
+    {
+      "id": 33,
+      "title": "Live replay (Nov 26): \"it looks like a scoop on a triangle\" is a description, not a wasted guess",
+      "mode": "user_draw",
+      "word": "ice cream",
+      "events": [
+        {
+          "t": 20,
+          "pal": "I see a long rectangle... is it a door?"
+        },
+        {
+          "t": 32,
+          "pal": "Wait, it looks like a scoop on a triangle. Is it an ice cream cone?"
+        }
+      ],
+      "expect": {
+        "winner": "pal",
+        "end_reason": "correct",
+        "guesses_used": 2
+      }
+    },
+    {
+      "id": 34,
+      "title": "Live replay (Nov 26): when Pip guesses right, the reveal tells Pip it got the point (not \"you got me\")",
+      "mode": "user_draw",
+      "word": "ice cream",
+      "events": [
+        {
+          "t": 32,
+          "pal": "Is it an ice cream cone?"
+        }
+      ],
+      "expect": {
+        "winner": "pal",
+        "say_contains": "You guessed it, your guess was right! You get the point."
+      }
+    },
+    {
+      "id": 35,
+      "title": "When the player guesses Pip's drawing, the reveal tells Pip the player got the point",
+      "mode": "pal_draw",
+      "word": "heart",
+      "events": [
+        {
+          "t": 8,
+          "user": "heart"
+        }
+      ],
+      "expect": {
+        "winner": "user",
+        "say_contains": "The player guessed your drawing correctly. They get the point."
+      }
+    },
+    {
+      "id": 36,
+      "title": "Live replay (Nov 26): \"A heart and a cone... is it an ice cream?\" guesses ice cream, not heart",
+      "mode": "user_draw",
+      "word": "heart",
+      "events": [
+        {
+          "t": 15,
+          "pal": "A heart and a cone... is it an ice cream?"
+        }
+      ],
+      "expect": {
+        "guesses_used": 1,
+        "status": "active",
+        "first_guess": "ice cream"
+      }
+    },
+    {
+      "id": 37,
+      "title": "Guessers-only scoring: a missed round scores for nobody, a right guess scores for the guesser",
+      "mode": "user_draw",
+      "word": "fish",
+      "events": [
+        {
+          "t": 5,
+          "pal": "Is it a banana?"
+        },
+        {
+          "t": 10,
+          "pal": "Is it a boat?"
+        },
+        {
+          "t": 15,
+          "pal": "Is it a cloud?"
+        }
+      ],
+      "expect": {
+        "winner": null,
+        "end_reason": "out_of_guesses",
+        "score": {
+          "user": 0,
+          "pal": 0
+        }
       }
     }
   ]

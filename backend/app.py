@@ -45,7 +45,8 @@ async def _ticker() -> None:
         for gid in store.active_ids():
             try:
                 with store.transaction(gid) as g:
-                    effects = game.tick(g, time.time()) if g else []
+                    now = time.time()
+                    effects = game.route_effects(g, game.tick(g, now), now) if g else []
                 if g:
                     dispatcher.dispatch(g.conversation_id, effects)
             except Exception:
@@ -80,7 +81,7 @@ def _mutate(game_id: str, token: Optional[str], fn) -> Any:
             result, more = fn(g, now)
         except game.GameError as e:
             raise HTTPException(409, str(e))
-        effects += more
+        effects = game.route_effects(g, effects + more, now)
     dispatcher.dispatch(g.conversation_id, effects)
     return result
 
@@ -231,6 +232,27 @@ async def cvi_event(game_id: str, request: Request, x_player_token: Optional[str
             output, fx = tools.handle_tool_call(g, props.get("name", ""), props.get("arguments"), call_id, now)
             fx = [{"kind": "tool_result", "tool_call_id": call_id, "output": output}] + fx
             return {"handled": True, "output": output}, fx
+        if event_type in ("conversation.started_speaking", "conversation.stopped_speaking"):
+            # Latency measurement: player stops talking -> PAL starts talking (Tavus timestamps).
+            role, ts = props.get("role"), ev.get("timestamp")
+            if role not in ("user", "pal") or not isinstance(ts, (int, float)):
+                return {"handled": False, "reason": "ignored role or timestamp"}, []
+            if g.seen(f"spk:{event_type}:{role}:{ts}"):
+                return {"handled": False, "reason": "duplicate"}, []
+            if role == "pal":  # track whether the PAL is mid-sentence (see game.route_effects)
+                if event_type == "conversation.started_speaking":
+                    game.pal_started_speaking(g, now)
+                else:
+                    game.pal_stopped_speaking(g, now)
+            if event_type == "conversation.stopped_speaking" and role == "user":
+                g.last_user_stop_ts = float(ts)
+            elif event_type == "conversation.started_speaking" and role == "pal" and g.last_user_stop_ts:
+                gap = float(ts) - g.last_user_stop_ts
+                g.last_user_stop_ts = None
+                if 0 <= gap < 20:
+                    g.latencies = (g.latencies + [round(gap, 2)])[-200:]
+                    log.info("latency: you stopped talking -> Pip started %.2fs (%s)", gap, g.state)
+            return {"handled": True}, []
         return {"handled": False, "reason": f"ignored {event_type}"}, []
 
     return _mutate(game_id, x_player_token, fn)

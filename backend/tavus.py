@@ -30,13 +30,17 @@ class TavusClient:
         self.api_key, self.pal_id, self.face_id, self.base_url = api_key, pal_id, face_id, base_url
         self.enabled = bool(api_key and pal_id)
         self.sent: List[Dict[str, Any]] = []  # demo mode: what would have been sent (debug only)
+        # One pooled keep-alive client. Live finding: a new connection per call cost ~0.8s per message
+        # (TLS handshake each time), and a round start sends two messages back to back.
+        self.http = httpx.Client(base_url=base_url, headers={"x-api-key": api_key}, timeout=15)
 
     def _post(self, path: str, body: Optional[Dict[str, Any]] = None, retries: int = 3) -> httpx.Response:
         last: Optional[httpx.Response] = None
         for attempt in range(retries):
             try:
-                resp = httpx.post(f"{self.base_url}{path}", json=body or {},
-                                  headers={"x-api-key": self.api_key}, timeout=15)
+                started = time.monotonic()
+                resp = self.http.post(path, json=body or {})
+                log.debug("tavus %s %s in %.2fs", path, resp.status_code, time.monotonic() - started)
             except httpx.HTTPError as e:
                 log.warning("tavus %s network error (attempt %d): %s", path, attempt + 1, e)
                 time.sleep(0.5 * 2 ** attempt)

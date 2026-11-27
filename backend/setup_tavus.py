@@ -50,18 +50,19 @@ STT: Dict[str, Any] = {
     ),
 }
 
-# Live finding: the PAL replied while the player was mid-sentence. Wait for a clear end of turn,
-# and stop talking as soon as the player starts (they often shout guesses over it).
+# Live findings: game 2 (patience "medium") the PAL replied while the player was mid-sentence; game 3
+# (patience "high") every reply felt late. Back to "medium" for speed; high interruptibility stays, so the
+# PAL stops the moment the player starts talking (they often shout guesses over it).
 CONVERSATIONAL_FLOW: Dict[str, Any] = {
     "turn_detection_model": "sparrow-2",
-    "turn_taking_patience": "high",
+    "turn_taking_patience": "medium",
     "pal_interruptibility": "high",
 }
 
 
 def pal_body(face_id: str) -> Dict[str, Any]:
     return {
-        "pal_name": f"{PAL_NAME} - No-Way Pictionary",
+        "pal_name": f"{PAL_NAME} - Doodle with Pip",
         "system_prompt": SYSTEM_PROMPT,
         "default_face_id": face_id,
         "layers": {"perception": PERCEPTION, "stt": STT, "conversational_flow": CONVERSATIONAL_FLOW},

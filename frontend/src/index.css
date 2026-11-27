@@ -56,20 +56,3 @@ body {
 .highlight {
   background: linear-gradient(transparent 55%, var(--color-marker) 55%, var(--color-marker) 92%, transparent 92%);
 }
-
-/* "No-Way" crossed out in red marker, like a correction. */
-.strike {
-  position: relative;
-  display: inline-block;
-}
-.strike::after {
-  content: "";
-  position: absolute;
-  left: -4%;
-  right: -4%;
-  top: 52%;
-  height: 0.09em;
-  background: var(--color-tomato);
-  transform: rotate(-6deg);
-  border-radius: 4px;
-}
