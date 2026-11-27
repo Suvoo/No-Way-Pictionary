@@ -42,7 +42,8 @@ export default function Game({ api, info, onPlayAgain, onHome, onLost }: Props) 
     setError(null);
     try {
       const r = await fn();
-      if (r && typeof r === "object" && "state" in (r as object)) setView(r as unknown as GameView);
+      // Only a game view (it has "round") replaces the view; other replies (e.g. the scoreboard) just refresh.
+      if (r && typeof r === "object" && "round" in (r as object)) setView(r as unknown as GameView);
       else await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -74,7 +75,7 @@ export default function Game({ api, info, onPlayAgain, onHome, onLost }: Props) 
   // The stage stays mounted through GAME_OVER so the player hears Pip's goodbye.
   return (
     <div className="mx-auto max-w-7xl px-4 pt-4 pb-10 sm:px-6">
-      <TopBar view={view} pal={pal} onQuit={() => act(api.complete)} />
+      <TopBar view={view} pal={pal} onQuit={onHome} />
 
       {error && <p className="sketch mt-3 bg-white px-4 py-2 text-sm font-semibold text-tomato">{error}</p>}
 
@@ -199,6 +200,28 @@ export default function Game({ api, info, onPlayAgain, onHome, onLost }: Props) 
 
 // ---------------------------------------------------------------- pieces
 
+// Quit asks first: one tap by mistake would end the game and the video call.
+function QuitButton({ onQuit }: { onQuit: () => void }) {
+  const [asking, setAsking] = useState(false);
+  if (!asking)
+    return (
+      <button onClick={() => setAsking(true)} className="text-xs font-semibold text-ink-soft underline">
+        Quit
+      </button>
+    );
+  return (
+    <span role="alertdialog" aria-label="Confirm quit" className="flex items-center gap-2 text-xs font-semibold">
+      Are you sure you want to quit?
+      <button onClick={onQuit} className="sketch-btn bg-tomato px-2 py-1 text-white">
+        Yes, quit
+      </button>
+      <button onClick={() => setAsking(false)} className="sketch-btn bg-white px-2 py-1">
+        No
+      </button>
+    </span>
+  );
+}
+
 function TopBar({ view, pal, onQuit }: { view: GameView; pal: string; onQuit: () => void }) {
   const r = view.round;
   const active = view.state === "USER_DRAW" || view.state === "PAL_DRAW";
@@ -227,11 +250,7 @@ function TopBar({ view, pal, onQuit }: { view: GameView; pal: string; onQuit: ()
             </span>
           </>
         )}
-        {view.state !== "GAME_OVER" && (
-          <button onClick={onQuit} className="text-xs font-semibold text-ink-soft underline">
-            Quit
-          </button>
-        )}
+        {view.state !== "GAME_OVER" && <QuitButton onQuit={onQuit} />}
       </div>
     </div>
   );
