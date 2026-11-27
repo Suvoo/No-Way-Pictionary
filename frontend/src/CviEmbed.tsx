@@ -60,6 +60,10 @@ export default function CviEmbed({ url, palName, onRelay, onCaption, caption, ga
   const [palVideo, setPalVideo] = useState<MediaStreamTrack | null>(null);
   const [palAudio, setPalAudio] = useState<MediaStreamTrack | null>(null);
   const [selfVideo, setSelfVideo] = useState<MediaStreamTrack | null>(null);
+  // Camera flip (phones and tablets): Daily's cycleCamera switches front <-> back mid-call, no rejoin.
+  const callRef = useRef<DailyCall | null>(null);
+  const [cameraCount, setCameraCount] = useState(0);
+  const [flipping, setFlipping] = useState(false);
   const relayRef = useRef(onRelay);
   const captionRef = useRef(onCaption);
   relayRef.current = onRelay;
@@ -68,6 +72,7 @@ export default function CviEmbed({ url, palName, onRelay, onCaption, caption, ga
   useEffect(() => {
     DailyIframe.getCallInstance()?.destroy();
     const call: DailyCall = DailyIframe.createCallObject({ subscribeToTracksAutomatically: true });
+    callRef.current = call;
     setStatus("joining");
 
     const sync = () => {
@@ -97,7 +102,15 @@ export default function CviEmbed({ url, palName, onRelay, onCaption, caption, ga
       }
       relayRef.current(data);
     });
-    call.on("joined-meeting", () => { setStatus("joined"); sync(); });
+    call.on("joined-meeting", () => {
+      setStatus("joined");
+      sync();
+      // Only offer the flip button where there is something to flip to (most laptops have one camera).
+      call
+        .enumerateDevices()
+        .then(({ devices }) => setCameraCount(devices.filter((d) => d.kind === "videoinput").length))
+        .catch(() => setCameraCount(0));
+    });
     call.on("participant-joined", sync);
     call.on("participant-updated", sync);
     call.on("participant-left", sync);
@@ -109,11 +122,26 @@ export default function CviEmbed({ url, palName, onRelay, onCaption, caption, ga
 
     call.join({ url }).catch(() => setStatus("error"));
     return () => {
+      callRef.current = null;
       call.leave().catch(() => undefined).finally(() => call.destroy());
     };
   }, [url, attempt]);
 
   const waitingForPal = status === "joined" && !palVideo;
+  // Mirror the preview like a selfie for the front camera only; the back camera shows the room as it is.
+  // (Pip always receives the unmirrored image either way.)
+  const facing = selfVideo?.getSettings?.().facingMode;
+  const mirrorSelf = facing !== "environment";
+
+  function flipCamera() {
+    const call = callRef.current;
+    if (!call || flipping) return;
+    setFlipping(true);
+    call
+      .cycleCamera({ preferDifferentFacingMode: true })
+      .catch(() => undefined)
+      .finally(() => setFlipping(false));
+  }
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-[radial-gradient(120%_90%_at_50%_30%,#1d2a44,#0f1626)]">
@@ -137,8 +165,20 @@ export default function CviEmbed({ url, palName, onRelay, onCaption, caption, ga
           selfViewSize === "md" ? "w-[30%] min-w-[110px]" : "w-[22%] min-w-[90px]"
         }`}
       >
-        <TrackVideo track={selfVideo} mirror className="h-full w-full object-cover" />
+        <TrackVideo track={selfVideo} mirror={mirrorSelf} className="h-full w-full object-cover" />
         <span className="absolute bottom-1 left-1.5 rounded bg-black/50 px-1.5 text-[10px] font-bold text-white">You</span>
+        {cameraCount > 1 && status === "joined" && (
+          <button
+            type="button"
+            onClick={flipCamera}
+            disabled={flipping}
+            aria-label={facing === "environment" ? "Switch to the front camera" : "Switch to the back camera"}
+            title="Switch camera"
+            className="absolute right-1 bottom-1 grid h-8 w-8 place-items-center rounded-full bg-black/60 text-base text-white disabled:opacity-50"
+          >
+            🔄
+          </button>
+        )}
       </div>
 
       {(status === "joining" || waitingForPal) && (

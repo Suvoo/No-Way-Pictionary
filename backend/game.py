@@ -193,8 +193,17 @@ def new_game(now: float, rng: Optional[random.Random] = None, words: Optional[Li
 
 # ---------------------------------------------------------------- round lifecycle
 
+def reveal_pending(g: Game) -> bool:
+    """The round is decided but Pip has not started announcing it yet (its "speak" line is being held
+    while Pip finishes the guess). Live finding (Nov 27): the screen showed "the word was chair" while
+    Pip was still saying "...is it a chair?", and players then talked over the announcement."""
+    return any(e.get("kind") == "speak" for e in g.pending_says)
+
+
 def start_round(g: Game, now: float) -> List[Effect]:
     """ROUND_START -> round 1, or REVEAL -> next round."""
+    if g.state == "REVEAL" and reveal_pending(g):
+        raise GameError("Pip is still announcing the result")
     if g.state == "REVEAL":
         g.current += 1
     elif g.state != "ROUND_START":
@@ -494,7 +503,7 @@ def handle_user_speech(g: Game, text: str, now: float, source: str = "speech") -
         return []
     if g.state in ("ROUND_START", "REVEAL"):
         # Voice start: "let's start", "go", "ready", "next round" do what the Start / Next button does.
-        if scorer.is_start_intent(text):
+        if scorer.is_start_intent(text) and not reveal_pending(g):  # not over Pip's announcement
             effects = start_round(g, now)
             g.round().started_by = "voice"
             if g.round().drawer == "user":
@@ -718,6 +727,7 @@ def public_view(g: Game, now: float) -> Dict[str, Any]:
         "max_guesses": MAX_GUESSES,
         "score": dict(g.score),
         "ended_reason": g.ended_reason,
+        "reveal_ready": not reveal_pending(g),  # the browser shows the reveal only once Pip announces it
         "round": view_round,
         "history": [_round_summary(x) for x in g.rounds if x.status in ("guessed", "missed")],
         "guess_log": [_guess_view(x) for x in g.guesses],

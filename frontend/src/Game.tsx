@@ -64,7 +64,10 @@ export default function Game({ api, info, onPlayAgain, onHome, onLost }: Props) 
   }
 
   const r = view.round;
-  const over = view.state === "GAME_OVER";
+  // The round is decided but Pip is still finishing the sentence that decided it: the screen waits,
+  // so the reveal lands with Pip's "Boom, it was ..." instead of spoiling it.
+  const announcing = (view.state === "REVEAL" || view.state === "GAME_OVER") && view.reveal_ready === false;
+  const over = view.state === "GAME_OVER" && !announcing;
   const showCanvas = r.drawer === "pal" && (view.state === "PAL_DRAW" || (view.state === "REVEAL" && r.strokes.length > 0));
 
   // Layout A: the live video is the stage (two thirds), the round's controls sit in a slim rail.
@@ -178,7 +181,8 @@ export default function Game({ api, info, onPlayAgain, onHome, onLost }: Props) 
                   </Card>
                 )}
 
-                {view.state === "REVEAL" && <Reveal view={view} pal={pal} busy={busy} onNext={() => act(api.startRound)} />}
+                {announcing && <Checking drawer={r.drawer} pal={pal} />}
+                {view.state === "REVEAL" && !announcing && <Reveal view={view} pal={pal} busy={busy} onNext={() => act(api.startRound)} />}
             </motion.div>
           )}
         </div>
@@ -343,6 +347,15 @@ function DemoPalInput({ pal, onSubmit }: { pal: string; onSubmit: (t: string) =>
         <button className="sketch-btn bg-white px-3 py-2 text-sm font-bold">Send</button>
       </div>
     </form>
+  );
+}
+
+function Checking({ drawer, pal }: { drawer: "user" | "pal"; pal: string }) {
+  return (
+    <Card>
+      <p className="font-marker text-2xl">🥁 {drawer === "user" ? `Checking ${pal}'s guess...` : "Checking your guess..."}</p>
+      <p className="mt-1 text-ink-soft">{pal} is about to tell you.</p>
+    </Card>
   );
 }
 

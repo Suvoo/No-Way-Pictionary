@@ -74,3 +74,26 @@ def test_reveal_waits_for_pips_own_winning_sentence():
     spoken = [e for e in later if e["kind"] in ("say", "speak")]
     assert [e["text"] for e in spoken] == ["Boom, it was glasses. Say next round when you're ready."]
     assert spoken[0]["kind"] == "speak"  # said word for word, not improvised
+
+
+def test_screen_waits_for_pips_announcement_and_next_round_waits_too():
+    """Live replay (Nov 27, deployed): the screen said "the word was chair" while Pip was still saying
+    "...is it a chair?", and the player's reaction cut Pip off."""
+    g = game.new_game(T0, words=["chair", "heart", "moon", "fish", "cup", "key"])
+    game.start_round(g, T0)
+    line = "Hmm, this, this, this... is it a chair?"
+    fx = game.handle_pal_speech(g, line, T0 + 10)
+    game.route_effects(g, fx, T0 + 10.2)  # Pip still talking: the "Boom" line is held
+    view = game.public_view(g, T0 + 10.5)
+    assert view["state"] == "REVEAL" and view["reveal_ready"] is False
+    assert game.handle_user_speech(g, "yes! next round", T0 + 11) == [] and g.state == "REVEAL"  # ignored for now
+    try:
+        game.start_round(g, T0 + 11)
+        raise AssertionError("start_round should wait for the announcement")
+    except game.GameError:
+        pass
+    out = game.route_effects(g, [], T0 + 10 + game.speaking_time(line) + 0.1)  # Pip finished: announce
+    assert [e["text"] for e in out if e["kind"] == "speak"][0].startswith("Boom, it was chair.")
+    assert game.public_view(g, T0 + 14)["reveal_ready"] is True
+    game.handle_user_speech(g, "next round", T0 + 16)
+    assert g.state == "PAL_DRAW"

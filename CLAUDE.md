@@ -33,6 +33,8 @@ make stop          # free ports 8000/5173 if a dev server was left running
 - **Never talk over Pip.** Anything Pip must say goes out as a `say` (Pip answers in its own words) or
   `speak` (word for word, used for reveals) effect, and `game.route_effects` holds it until Pip
   finishes. Do not send `conversation.respond` / `echo` around that path.
+  The screen follows the same timing: `reveal_ready` stays false ("Checking Pip's guess...") and the next
+  round can't start until the held reveal line has gone out.
 - **Giving the word away** (saying it, or writing it on the paper, seen by Raven's `written_word_on_paper`
   vision tool) swaps the word once; a second time gives Pip the point. Only the secret word counts.
 - **Pip is a game host, not a chatbot.** Off-topic talk gets one friendly sentence, then back to the game.

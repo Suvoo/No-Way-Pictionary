@@ -45,6 +45,7 @@ export type GameView = {
   max_guesses: number;
   score: { user: number; pal: number };
   ended_reason: "finished" | "quit" | "idle" | null;
+  reveal_ready: boolean; // false while Pip is still saying the guess that ended the round
   round: {
     index: number;
     drawer: "user" | "pal";
