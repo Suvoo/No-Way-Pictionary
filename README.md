@@ -4,7 +4,9 @@
 
 > **A PAL is a prompt. This is a system.** The PAL is one component: face, voice and guesser. The game state machine, the secret handling, the turn-taking, the referee that scores every guess, the stroke templates and the eval are the application, and none of that lives in the Tavus dashboard.
 
-- **Live link:** `TODO: add after deploy`
+- **Play it:** `TODO: live link after deploy` (no login, no setup; grab paper and a thick pen)
+- **Watch it:** `TODO: 2-minute Loom`
+- **How it works:** [Architecture](#architecture) · **Why this project:** [Why this project](#why-this-project) · **Does it work:** [Eval results and live testing](#eval-results)
 - **Repo:** https://github.com/Suvoo/No-Way-Pictionary
 - **Run it locally in 3 steps:** see [Quick start](#quick-start). It works with **no Tavus key** (demo mode).
 - **Check it works:** `make check` runs the golden-set eval (43 cases), API and unit tests, and the frontend build.
@@ -87,25 +89,37 @@ Check it is up: `curl https://<your-app>/health` returns `{"ok": true, "mode": "
 ## Architecture
 
 ```
- Browser (React + Vite + Tailwind)                     FastAPI backend (owns ALL game state)
- ┌────────────────────────────────────┐               ┌─────────────────────────────────────────┐
- │ Landing -> Game -> Scoreboard      │  POST /games  │ app.py      routes                      │
- │                                    │──────────────>│ game.py     state machine, timer, rules │
- │ CviEmbed (Daily call object)       │<── room url ──│ scorer.py   speech -> scored guess      │
- │   PAL video + your camera          │               │ tools.py    draw_next_stroke            │
- │   app-messages from Tavus:         │  POST /events │ prompts.py  everything the PAL is told  │
- │   speech, tool calls, speaking ────┼──────────────>│ store.py    SQLite, one row per game    │
- │                                    │               │ webhooks.py HMAC-verified callbacks     │
- │ Canvas (SVG, PAL rounds only)      │<─ GET /games ─│ tavus.py    the only Tavus API client   │
- │ Word box (your rounds only)        │   (1s poll)   └───────────────┬─────────────────────────┘
- └──────────────┬─────────────────────┘                               │ send-app-message:
-                │ WebRTC (Daily)                                       │ overwrite/append context,
-                v                                                      │ respond, echo, tool_result
- ┌──────────────────────────────────────────────────────────────────────v──────────────────────┐
- │ Tavus CVI: PAL "Pip" (system prompt + draw tool) + Face + Conversation (Daily room)         │
- │ Raven-2 perception (sees your paper) -> Sparrow turn-taking -> LLM -> TTS -> Phoenix video  │
- │ Callbacks (post-call transcript, shutdown) ─────────────> POST /webhooks/tavus              │
- └─────────────────────────────────────────────────────────────────────────────────────────────┘
+BROWSER  React + Vite + Tailwind (built and served by the backend in production)
+│  Landing -> Game -> Scoreboard. Renders whatever the backend returns; owns no rules.
+│  CviEmbed.tsx: joins the Daily room, shows Pip's video + your camera preview, and relays
+│                Tavus app-messages (speech, tool calls, started/stopped speaking)
+│
+│  POST /api/games ...................... create a game + its Tavus conversation -> room URL
+│  POST /api/games/{id}/events .......... relayed app-messages (the only way speech reaches the backend)
+│  POST /api/games/{id}/start-round|look|guesses|hint|next-stroke|complete ... buttons and typed guesses
+│  GET  /api/games/{id} ................. polled every 1s -> public view (never Pip's secret word)
+▼
+BACKEND  FastAPI, one process, owns ALL game state
+│  game.py ......... state machine, timers, scoring. Pure: returns effects (what Pip should hear or say)
+│  scorer.py ....... speech -> scored guess (matching, near misses, voice commands)
+│  route_effects ... (in game.py) holds Pip's spoken lines until Pip stops talking; drops stale prompts
+│  tavus.py ........ sends effects to Tavus one at a time, in order (demo mode: logs them instead)
+│  prompts.py ...... everything Pip is told     store.py ... SQLite, one row per game
+│  webhooks.py ..... HMAC-verified callbacks    inspect_game.py ... `make last-game`
+│
+│  POST /v2/conversations ........................ create the call: pal_id, per-game context, greeting
+│  POST /v2/conversations/{id}/send-app-message
+│       overwrite_llm_context / append_llm_context ... round context and secrets (silent)
+│       respond ...................................... Pip answers in its own words (nudges, round starts)
+│       echo ......................................... Pip says this exact line (reveals)
+│       tool_result .................................. answer to Pip's draw_next_stroke
+│  POST /v2/conversations/{id}/end ............... at game over, Home, Play again or Quit
+▼
+TAVUS CVI
+   PAL "Pip", created once by setup_tavus.py (`make tavus-update` to change it): system prompt,
+     Raven-2 with paper-focused awareness questions, speech hotwords, turn-taking settings, draw tool
+   Conversation = a Daily WebRTC room: Raven-2 sees -> Sparrow-2 turn-taking -> LLM -> TTS -> Phoenix video
+   Live app-messages go to the BROWSER only (hence the relay); post-call callbacks -> POST /webhooks/tavus
 ```
 
 **Browser.** One page: landing, then game, then scoreboard. It renders whatever state the backend returns and owns no rules. The canvas is shown **only** in PAL-draw rounds, and the word box only in yours, so paper stays the input and canvas the output. Layout: the live video is the stage (two thirds of the width on desktop) and the round's controls sit in a slim rail; on phones they stack. `CviEmbed.tsx` joins the Daily room with a Daily *call object* and draws the tracks itself: Pip's video fills the stage, the player's camera is a small corner preview for aiming the paper, Pip's lines appear as captions, and there is no stock pre-join screen. It also **relays** Tavus app-messages (`conversation.utterance`, `conversation.tool_call`, `started/stopped_speaking`) to the backend, because Tavus delivers those only to the browser (see [Tavus API notes](#tavus-api-notes-verified-nov-26-2026)).
