@@ -29,6 +29,7 @@ const RELAYED = new Set([
   "conversation.tool_call",
   "conversation.started_speaking",
   "conversation.stopped_speaking",
+  "conversation.perception_tool_call", // Raven's vision tool: writing seen on the player's paper
 ]);
 
 function playable(t?: { state?: string; persistentTrack?: MediaStreamTrack }): MediaStreamTrack | null {
@@ -87,6 +88,12 @@ export default function CviEmbed({ url, palName, onRelay, onCaption, caption, ga
         if ((role === "user" || role === "pal") && text && !text.startsWith("[game]")) {
           captionRef.current({ role, text, at: Date.now() });
         }
+      }
+      if (data.event_type === "conversation.perception_tool_call") {
+        // Never relay the camera frames Raven attaches (base64 images of the player's room).
+        const { frames: _frames, ...rest } = (data.properties ?? {}) as Record<string, unknown>;
+        relayRef.current({ ...data, properties: rest });
+        return;
       }
       relayRef.current(data);
     });

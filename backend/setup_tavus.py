@@ -1,4 +1,4 @@
-"""Tavus setup for Pip: create it once, then update it in place after prompt or settings changes.
+"""Tavus setup for Pip: create it once, then update it in place after prompt, settings or tool changes.
 
     python -m backend.setup_tavus              # create the tool + PAL, prints TAVUS_PAL_ID
     python -m backend.setup_tavus --update     # update the PAL in TAVUS_PAL_ID in place (same id)
@@ -80,7 +80,15 @@ def pal_patch() -> List[Dict[str, Any]]:
 
 
 def _tool_bodies() -> List[Dict[str, Any]]:
-    return [{**t, "trigger_type": "in_call", "origin": "llm", "delivery": {"app_message": True}} for t in TOOL_SPECS]
+    """LLM tools default to origin "llm"; perception tools (origin "vision") must omit on_call/on_resolve."""
+    bodies = []
+    for t in TOOL_SPECS:
+        body = {"trigger_type": "in_call", "delivery": {"app_message": True}, "origin": "llm", **t}
+        if body["origin"] != "llm":
+            body.pop("on_call", None)
+            body.pop("on_resolve", None)
+        bodies.append(body)
+    return bodies
 
 
 def _ensure_tools(h: Dict[str, str]) -> List[str]:

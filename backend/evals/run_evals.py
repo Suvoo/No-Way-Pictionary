@@ -50,6 +50,8 @@ def run_round_case(case: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
             effects += game.handle_pal_speech(g, ev["pal"], t)
         elif "user" in ev:
             effects += game.handle_user_speech(g, ev["user"].replace("NEWWORD", g.round().word), t)
+        elif "vision" in ev:  # Raven's written_word_on_paper tool fired with the text it read
+            effects += game.handle_written_text(g, ev["vision"]["text"].replace("NEWWORD", g.round().word), t)
         elif "tool" in ev:
             out, fx = tools.handle_tool_call(g, ev["tool"], ev.get("args", {}), f"call{ev['t']}", t)
             tool_outputs.append(out)

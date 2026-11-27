@@ -232,6 +232,18 @@ async def cvi_event(game_id: str, request: Request, x_player_token: Optional[str
             output, fx = tools.handle_tool_call(g, props.get("name", ""), props.get("arguments"), call_id, now)
             fx = [{"kind": "tool_result", "tool_call_id": call_id, "output": output}] + fx
             return {"handled": True, "output": output}, fx
+        if event_type == "conversation.perception_tool_call":
+            # Raven's vision tool (see tools.py). The browser strips the frame images before relaying.
+            name = props.get("name")
+            key = f"perc:{name}:{ev.get('seq') or ev.get('timestamp')}"
+            if g.seen(key):
+                return {"handled": False, "reason": "duplicate"}, []
+            if name != "written_word_on_paper":
+                return {"handled": False, "reason": f"ignored perception tool {name}"}, []
+            args = tools._parse_args(props.get("arguments"))
+            text = str(args.get("text", ""))
+            log.info("<- Raven saw writing on the paper: %r", text[:60])
+            return {"handled": True}, game.handle_written_text(g, text, now)
         if event_type in ("conversation.started_speaking", "conversation.stopped_speaking"):
             # Latency measurement: player stops talking -> PAL starts talking (Tavus timestamps).
             role, ts = props.get("role"), ev.get("timestamp")

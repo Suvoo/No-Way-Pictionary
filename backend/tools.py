@@ -9,6 +9,8 @@ Delivery path (verified against the Tavus OpenAPI spec, Nov 26 2026):
 
 Tools:
   draw_next_stroke()   PAL adds the next pre-made stroke to the canvas.
+  written_word_on_paper(text)  Raven (vision) saw writing on the player's paper; the backend checks it
+                       against the secret word (app.py -> game.handle_written_text).
   submit_guess(guess)  retired (see RETIRED_TOOLS); PAL guesses are scored from its speech.
   (request_hint is a button for the player, see app.py; reveal_answer is game.end_round,
    backend-only, deliberately NOT exposed to the PAL so it cannot end a round early.)
@@ -37,6 +39,23 @@ TOOL_SPECS: List[Dict[str, Any]] = [
         "parameters": {"type": "object", "properties": {}},
         "on_call": "silent",
         "on_resolve": "generate_response",
+    },
+    {
+        # A Raven vision tool: Raven fires it by itself when it sees the condition (no LLM involved).
+        # Writing the secret word on the paper is handled like saying it out loud (game.player_revealed_word).
+        "name": "written_word_on_paper",
+        "origin": "vision",
+        "description": (
+            "Trigger when the paper the user is holding up to the camera has handwritten letters or a "
+            "written word on it, instead of or in addition to a drawing. Extract the written text exactly "
+            "as it appears. Do not trigger for text on clothing, posters, screens, or anything other than "
+            "the paper the user is holding up."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {"text": {"type": "string", "description": "The letters or word written on the paper, exactly as written."}},
+            "required": ["text"],
+        },
     },
 ]
 

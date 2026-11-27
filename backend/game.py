@@ -109,6 +109,7 @@ class Round:
     flags: List[str] = field(default_factory=list)  # audit notes, e.g. "player said the word out loud"
     word_swaps: int = 0  # times the player's word was replaced because they said it out loud
     retired_words: List[str] = field(default_factory=list)
+    end_how: Optional[str] = None  # "said" | "wrote" when the round ended as gave_away
     notice: Optional[str] = None  # one-line message for the player's screen this round
 
 
@@ -256,7 +257,8 @@ def reveal_line(r: Round) -> str:
         if r.end_reason == "correct":
             return f"Boom, it was {w}."
         if r.end_reason == "gave_away":
-            return f"You said it again! It was {w}, so the point is mine."
+            return (f"You wrote it again! It was {w}, so the point is mine." if r.end_how == "wrote"
+                    else f"You said it again! It was {w}, so the point is mine.")
         if r.end_reason == "out_of_guesses":
             return f"Aw, it was {w}! I'm out of guesses. No point this round."
         return f"Time's up! It was {w}. No point this round."
@@ -271,7 +273,7 @@ def reveal_outcome(r: Round) -> str:
     """What happened this round, said TO the PAL ("you" = the PAL). Guessers-only scoring."""
     if r.drawer == "user":  # the PAL was guessing the player's drawing
         if r.end_reason == "gave_away":
-            return "The player said their secret word out loud again, so you get the point. Tease them gently."
+            return "The player gave away their secret word again, so you get the point. Tease them gently."
         if r.end_reason == "correct":
             return "You guessed it, your guess was right! You get the point. Celebrate."
         if r.end_reason == "out_of_guesses":
@@ -497,10 +499,31 @@ def handle_user_speech(g: Game, text: str, now: float, source: str = "speech") -
 
 
 def said_word_out_loud(g: Game, now: float) -> List[Effect]:
-    """Player's round: the player said their own secret word, so Pip has heard it."""
+    return player_revealed_word(g, now, how="said")
+
+
+def handle_written_text(g: Game, text: str, now: float) -> List[Effect]:
+    """Raven's vision tool saw writing on the player's paper. Only the secret word (or a near miss of it)
+    counts as giving it away; any other writing (a logo, a doodle label) is logged and ignored."""
+    if g.state != "USER_DRAW" or not text.strip():
+        return []
     r = g.round()
+    if scorer.matches_word(text, r.word) or scorer.is_near_miss(text, r.word):
+        return player_revealed_word(g, now, how="wrote")
+    note = f"Raven saw writing on the paper ('{text[:40]}'), not the secret word: ignored"
+    if note not in r.flags:
+        r.flags.append(note)
+    return []
+
+
+def player_revealed_word(g: Game, now: float, how: str) -> List[Effect]:
+    """Player's round: they said ("said") or wrote ("wrote") their own secret word, so Pip has it.
+    First time: a new word and a fresh round. Second time in the same round: Pip gets the point."""
+    r = g.round()
+    verb = "said it out loud" if how == "said" else "wrote it on the paper"
     if r.word_swaps >= 1:  # second time this round: it was given away, Pip gets the point
-        r.flags.append(f"player said the word out loud again ({r.word})")
+        r.flags.append(f"player {verb} again ({r.word})")
+        r.end_how = how
         return end_round(g, now, reason="gave_away")
     old = r.word
     taken = {x.word for x in g.rounds} | set(r.retired_words)
@@ -508,18 +531,23 @@ def said_word_out_loud(g: Game, now: float) -> List[Effect]:
     r.retired_words.append(old)
     r.word = random.Random(f"{g.id}:{r.index}:{now}").choice(pool)
     r.word_swaps += 1
-    r.flags.append(f"player said the word out loud ({old}), replaced with a new word")
-    r.notice = "You said your word out loud! Here's a new one. Say it again and Pip gets the point."
+    r.flags.append(f"player {verb} ({old}), replaced with a new word")
+    r.notice = (
+        "You said your word out loud! Here's a new one. Say it again and Pip gets the point."
+        if how == "said" else
+        "You wrote your word on the paper! Here's a new one. Draw it, don't write it. Do it again and Pip gets the point."
+    )
     r.deadline = now + ROUND_SECONDS  # fresh round on the new word
     r.guesses_used, r.wrong_guesses = 0, []
     r.look_nudges, r.last_look_nudge_at, r.started_at = 0, None, now
     for x in g.guesses:  # guesses on the old word no longer count (and leave the on-screen list)
         if x.round == r.index and x.counted:
             x.counted, x.note = False, f"void: word replaced ({x.note})"
+    what = "said their secret word out loud" if how == "said" else "wrote their secret word on the paper"
     return [
         {"kind": "context", "text": prompts.user_draw_context(r.index, ROUNDS, g.score, MAX_GUESSES, ROUND_SECONDS)},
         {"kind": "say", "text": (
-            "[game] The player said their secret word out loud, so the game gave them a NEW secret word. "
+            f"[game] The player {what}, so the game gave them a NEW secret word. "
             "The old word does not count and you do not know the new one. Say one short playful line like "
             "\"No cheating! New word!\" and watch for the new drawing.")},
     ]

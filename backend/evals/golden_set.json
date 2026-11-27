@@ -902,6 +902,73 @@
         "guesses_used": 1,
         "status": "active"
       }
+    },
+    {
+      "id": 44,
+      "title": "Writing the secret word on the paper (Raven's vision tool) swaps the word, like saying it",
+      "mode": "user_draw",
+      "word": "boat",
+      "events": [
+        {
+          "t": 8,
+          "pal": "Is it a sail?"
+        },
+        {
+          "t": 12,
+          "vision": {
+            "text": "BOAT"
+          }
+        }
+      ],
+      "expect": {
+        "status": "active",
+        "guesses_used": 0,
+        "word_changed": true,
+        "flags_contains_text": "wrote it on the paper"
+      }
+    },
+    {
+      "id": 45,
+      "title": "Other writing Raven sees (a logo, a label) is ignored, not a penalty",
+      "mode": "user_draw",
+      "word": "boat",
+      "events": [
+        {
+          "t": 12,
+          "vision": {
+            "text": "NIKE"
+          }
+        }
+      ],
+      "expect": {
+        "status": "active",
+        "flags_contains_text": "not the secret word: ignored"
+      }
+    },
+    {
+      "id": 46,
+      "title": "Writing the new word too gives Pip the point, and the reveal says so",
+      "mode": "user_draw",
+      "word": "boat",
+      "events": [
+        {
+          "t": 10,
+          "vision": {
+            "text": "boat"
+          }
+        },
+        {
+          "t": 20,
+          "vision": {
+            "text": "NEWWORD"
+          }
+        }
+      ],
+      "expect": {
+        "winner": "pal",
+        "end_reason": "gave_away",
+        "say_contains": "You wrote it again!"
+      }
     }
   ]
 }

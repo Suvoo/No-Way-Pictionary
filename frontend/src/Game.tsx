@@ -352,7 +352,7 @@ function Reveal({ view, pal, busy, onNext }: { view: GameView; pal: string; busy
   const reason =
     r.end_reason === "correct"
       ? r.drawer === "user" ? `${pal} guessed your drawing.` : "You guessed it!"
-      : r.end_reason === "gave_away" ? "You said your word out loud again."
+      : r.end_reason === "gave_away" ? "You gave your word away again."
       : r.end_reason === "timeout" ? "Time ran out." : "No guesses left.";
   return (
     <Card className={youWon ? "bg-mint/20" : r.winner === "pal" ? "bg-sky/10" : "bg-white"}>

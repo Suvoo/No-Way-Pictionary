@@ -15,9 +15,9 @@ is the source of truth** (what, why, architecture, API, deploy, eval results). T
 ```bash
 make setup         # once: venv + pip + npm, copies .env.example -> .env
 make dev           # backend :8000 + frontend :5173. Demo mode (typed guesses) until .env has Tavus keys
-make check         # eval (43 cases) + API/unit tests + frontend build. Run after EVERY change
+make check         # eval (46 cases) + API/unit tests + frontend build. Run after EVERY change
 make last-game     # what happened in the latest game: rounds, every guess and why, latency
-make tavus-setup   # once: create Pip (PAL) + its tool on Tavus, prints TAVUS_PAL_ID for .env
+make tavus-setup   # once: create Pip (PAL) + its tools on Tavus, prints TAVUS_PAL_ID for .env
 make tavus-update  # after changing SYSTEM_PROMPT or PAL settings (setup_tavus.py): update Pip in place
 make docker        # production image on http://localhost:8080 (what Render runs)
 make stop          # free ports 8000/5173 if a dev server was left running
@@ -33,6 +33,8 @@ make stop          # free ports 8000/5173 if a dev server was left running
 - **Never talk over Pip.** Anything Pip must say goes out as a `say` (Pip answers in its own words) or
   `speak` (word for word, used for reveals) effect, and `game.route_effects` holds it until Pip
   finishes. Do not send `conversation.respond` / `echo` around that path.
+- **Giving the word away** (saying it, or writing it on the paper, seen by Raven's `written_word_on_paper`
+  vision tool) swaps the word once; a second time gives Pip the point. Only the secret word counts.
 - **Every live bug becomes an eval case** in `backend/evals/golden_set.json` ("Live replay (date): ...").
 
 ## Where to change things

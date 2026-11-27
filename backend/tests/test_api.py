@@ -145,3 +145,15 @@ def test_speaking_events_measure_latency():
               ev("stopped", "user", 110.0), ev("started", "replica", 110.5), ev("started", "pal", 110.8)]:
         assert client.post(f"/api/games/{gid}/events", headers=h, json=e).status_code == 200
     assert store.get(gid).latencies == [1.25, 0.8]
+
+
+def test_vision_tool_relay_swaps_word_when_secret_is_written():
+    gid, h = _new()
+    client.post(f"/api/games/{gid}/start-round", headers=h)
+    word = _word(gid, 1)
+    ev = {"event_type": "conversation.perception_tool_call", "seq": 41,
+          "properties": {"name": "written_word_on_paper", "modality": "vision", "arguments": json.dumps({"text": word.upper()})}}
+    assert client.post(f"/api/games/{gid}/events", headers=h, json=ev).json() == {"handled": True}
+    v = client.get(f"/api/games/{gid}", headers=h).json()["round"]
+    assert v["your_word"] != word and "wrote your word" in v["notice"]
+    assert client.post(f"/api/games/{gid}/events", headers=h, json=ev).json()["reason"] == "duplicate"

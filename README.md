@@ -9,7 +9,7 @@
 - **How it works:** [Architecture](#architecture) · **Why this project:** [Why this project](#why-this-project) · **Does it work:** [Eval results and live testing](#eval-results)
 - **Repo:** https://github.com/Suvoo/No-Way-Pictionary
 - **Run it locally in 3 steps:** see [Quick start](#quick-start). It works with **no Tavus key** (demo mode).
-- **Check it works:** `make check` runs the golden-set eval (43 cases), API and unit tests, and the frontend build.
+- **Check it works:** `make check` runs the golden-set eval (46 cases), API and unit tests, and the frontend build.
 - **AI agents:** start with [`CLAUDE.md`](CLAUDE.md): read order, commands, the rules that must not break, where to change things.
 
 ---
@@ -88,11 +88,15 @@ Check it is up: `curl https://<your-app>/health` returns `{"ok": true, "mode": "
 
 ## Architecture
 
+![Doodle with Pip: who talks to whom. The browser talks to the backend and to Tavus; Tavus sends live speech only to the browser, which relays it to the backend; the backend controls Pip and stores games in SQLite.](docs/architecture.jpg)
+
+The same system in text, with the real routes and message types:
+
 ```
 BROWSER  React + Vite + Tailwind (built and served by the backend in production)
 │  Landing -> Game -> Scoreboard. Renders whatever the backend returns; owns no rules.
 │  CviEmbed.tsx: joins the Daily room, shows Pip's video + your camera preview, and relays
-│                Tavus app-messages (speech, tool calls, started/stopped speaking)
+│                Tavus app-messages (speech, tool calls, Raven vision tool, started/stopped speaking)
 │
 │  POST /api/games ...................... create a game + its Tavus conversation -> room URL
 │  POST /api/games/{id}/events .......... relayed app-messages (the only way speech reaches the backend)
@@ -117,7 +121,8 @@ BACKEND  FastAPI, one process, owns ALL game state
 ▼
 TAVUS CVI
    PAL "Pip", created once by setup_tavus.py (`make tavus-update` to change it): system prompt,
-     Raven-2 with paper-focused awareness questions, speech hotwords, turn-taking settings, draw tool
+     Raven-2 with paper-focused awareness questions, speech hotwords, turn-taking settings,
+     draw tool (LLM) + written_word_on_paper (Raven vision tool)
    Conversation = a Daily WebRTC room: Raven-2 sees -> Sparrow-2 turn-taking -> LLM -> TTS -> Phoenix video
    Live app-messages go to the BROWSER only (hence the relay); post-call callbacks -> POST /webhooks/tavus
 ```
@@ -139,7 +144,7 @@ TAVUS CVI
 
 **Not talking over the PAL (`game.route_effects`).** Every line the backend makes the PAL say is a new turn that interrupts whatever it is saying, so the backend tracks `started/stopped_speaking` (and estimates the length of the PAL's own sentence, about 0.36s a word) and holds those lines until the PAL finishes, max 8s. Stale timer prompts are dropped. Reveals are fixed lines spoken word for word with `conversation.echo`, and always name the word: "Boom, it was glasses.", "Yes! It was heart. Point to you.", "Time's up! It was pizza. No point this round."
 
-**PAL tool (`tools.py`).** `draw_next_stroke()` for its drawing. (A `submit_guess` tool was retired after two live games: the PAL never called it, so the referee scores what the PAL says out loud, which is also what the player hears.) The PAL decides *when* to draw, and the template decides *what* is drawn, so it cannot draw nonsense or the wrong word. `reveal_answer` (`game.end_round`) is backend-only on purpose, so the PAL cannot end a round early. The hint is a player button, enabled only in PAL-draw rounds, because a hint in your round would leak your word to the PAL.
+**PAL tools (`tools.py`).** `draw_next_stroke()` for its drawing (LLM tool). `written_word_on_paper(text)` is a Raven **vision** tool: Raven fires it by itself when it sees writing on the paper, the browser relays it without the camera frames, and the backend checks the text against the secret word. (A `submit_guess` tool was retired after two live games: the PAL never called it, so the referee scores what the PAL says out loud, which is also what the player hears.) The PAL decides *when* to draw, and the template decides *what* is drawn, so it cannot draw nonsense or the wrong word. `reveal_answer` (`game.end_round`) is backend-only on purpose, so the PAL cannot end a round early. The hint is a player button, enabled only in PAL-draw rounds, because a hint in your round would leak your word to the PAL.
 
 **Canvas and stroke templates (`strokes.json`).** 28 words, 2 to 6 strokes each, as plain shapes (line, circle, ellipse, arc) in a 100×100 box. They are rendered as rough black marker lines with a little deterministic wobble, and each new stroke animates in like a pen. Add a word: one entry in `words.py`, one template in `strokes.json`, then `make eval`.
 
@@ -189,7 +194,7 @@ curl -s -X POST localhost:8000/api/games/Xk2../events -H 'X-Player-Token: 9fQ..'
 **You don't have to trust the PAL.** The backend picks the words, keeps each secret on the right side, checks every spoken guess against the secret, and logs every guess with a timestamp, its source (tool, transcript, speech, typed) and why it did or did not count. The PAL talks; the backend referees.
 
 1. **Measured spike (before building, Nov 26 2026):** a Raven-2 PAL, 5 easy words (star, house, fish, bicycle, cat), thick black marker, held steady for 3s, good room light, real phone browser: **5/5 correct within 3 guesses.** That is the only perception result claimed. It is 5 easy words, not all 345 categories.
-2. **Golden-set eval (`make eval`):** 43 scripted cases (including replays of real live-game transcripts) replayed against the real engine with a fake clock. They prove the game logic: scoring, timers, synonyms, repeats, secret handling, cheat flags, the honesty fallback, and that the PAL cannot guess in its own round.
+2. **Golden-set eval (`make eval`):** 46 scripted cases (including replays of real live-game transcripts) replayed against the real engine with a fake clock. They prove the game logic: scoring, timers, synonyms, repeats, secret handling, cheat flags, the honesty fallback, and that the PAL cannot guess in its own round.
 3. **Live audit trail:** every guess is stored with its raw text, source and why it did or did not count, in the database and in `GET /api/games/{id}/scoreboard` (`guess_log`). Players see only the words and who scored; anyone checking the game can re-score it by hand from the log.
 
 ### Eval results
@@ -238,8 +243,11 @@ PASS  #40  Live replay (Nov 26): "Of it." is speech debris, not a wasted guess
 PASS  #41  Live replay (Nov 26): "a smile" counts for smiley face
 PASS  #42  Pip's exclamation counts only when it names a game word ("Wait, it's a bicycle!")
 PASS  #43  After a word swap, Pip may guess an old guess again on the new word (not "already tried")
+PASS  #44  Writing the secret word on the paper (Raven's vision tool) swaps the word, like saying it
+PASS  #45  Other writing Raven sees (a logo, a label) is ignored, not a penalty
+PASS  #46  Writing the new word too gives Pip the point, and the reveal says so
 
-43/43 passed
+46/46 passed
 ```
 
 **Live testing (Nov 26 2026):** nine games (29 rounds) against the live PAL. Secrets held in every game. Measured turn latency, from the player stopping talking to the PAL starting, had a median of 0.88s over 49 turns (2 readings were excluded: the PAL was answering a backend line, not the player, a measurement bug since fixed). Every problem the games surfaced is fixed and replayed as an eval case labelled "Live replay": a growing utterance scored three times, the PAL waiting to be spoken to before looking, mishearings, the PAL misreading who won, the backend cutting the PAL off mid-sentence, the player saying their own word, and more.
@@ -275,9 +283,9 @@ PASS  #43  After a word swap, Pip may guess an old guess again on the new word (
 
 ## Edge cases
 
-Handled in v1: synonyms and plurals · repeated guesses · the same guess heard twice · late guesses (3s grace, then rejected) · speech-to-text near misses ("slow man" for snowman: not counted, the PAL asks again; never for 3-letter words) · starting by voice ("let's start", "ready", "next round"; "not ready" and "wait" win) · a growing or cut-off utterance (scored once, fragments ignored) · a PAL that waits instead of looking (prompted after ~9s of quiet) · timer expiry (nobody scores) · duplicate words in a game · Play Again avoiding the last game's words · the player saying their own word out loud (first time: a new word, a fresh 45s and Pip's guesses reset, with a warning on screen; second time in the round: Pip gets the point) · the PAL saying its own word (flagged) · the PAL guessing in its own round (refused) · "can't see, hold it closer" (logged, not a guess) · a silent player (one nudge + auto strokes) · a PAL that stops drawing (auto stroke every 7s) · duplicate webhooks and relayed events (idempotent) · garbage or malformed events (ignored, never crash) · a dropped call (Reconnect, same game) · a backend restart (state persisted after every change) · the conversation left open (closed at game end, on Home or Play again, plus a 20 min `max_call_duration` cap).
+Handled in v1: synonyms and plurals · repeated guesses · the same guess heard twice · late guesses (3s grace, then rejected) · speech-to-text near misses ("slow man" for snowman: not counted, the PAL asks again; never for 3-letter words) · starting by voice ("let's start", "ready", "next round"; "not ready" and "wait" win) · a growing or cut-off utterance (scored once, fragments ignored) · a PAL that waits instead of looking (prompted after ~9s of quiet) · timer expiry (nobody scores) · duplicate words in a game · Play Again avoiding the last game's words · the player saying their own word out loud (first time: a new word, a fresh 45s and Pip's guesses reset, with a warning on screen; second time in the round: Pip gets the point) · the player writing their word on the paper (Raven's `written_word_on_paper` vision tool reads it; if it is the secret word, same as saying it; other writing is ignored) · the PAL saying its own word (flagged) · the PAL guessing in its own round (refused) · "can't see, hold it closer" (logged, not a guess) · a silent player (one nudge + auto strokes) · a PAL that stops drawing (auto stroke every 7s) · duplicate webhooks and relayed events (idempotent) · garbage or malformed events (ignored, never crash) · a dropped call (Reconnect, same game) · a backend restart (state persisted after every change) · the conversation left open (closed at game end, on Home or Play again, plus a 20 min `max_call_duration` cap).
 
-Noted, not built in v1: writing the word on paper (the prompt tells the PAL to call it out, with no automatic detection) · holding up a phone image or print · a second person shouting guesses (no speaker ID) · lined or grid paper, a mirrored front camera, glare, shaky hands · rude drawings (prompt-level only) · rotating the phone mid-round · running out of Tavus minutes mid-game (the create call fails cleanly with a message, but there is no warning mid-game) · a slow connection delaying Raven's view.
+Noted, not built in v1: holding up a phone image or print · a second person shouting guesses (no speaker ID) · lined or grid paper, a mirrored front camera, glare, shaky hands · rude drawings (prompt-level only) · rotating the phone mid-round · running out of Tavus minutes mid-game (the create call fails cleanly with a message, but there is no warning mid-game) · a slow connection delaying Raven's view.
 
 ## What I would do with two more days
 
@@ -304,13 +312,14 @@ README.md           this file (source of truth)
 Makefile            every command: setup, dev, check, last-game, tavus-setup/update, docker, stop
 Dockerfile          one image: builds the React app, serves it from FastAPI
 render.yaml         Render blueprint (one web service, health check /health)
+docs/architecture.jpg  the system diagram shown in Architecture
 .env.example        every env var, with comments
 backend/
   app.py            FastAPI routes (+ serves frontend/dist in production)
   game.py           state machine, timers, rules, scoring, not-talking-over-Pip (start here)
   scorer.py         speech -> scored guess: matching, synonyms, near misses, voice commands
   prompts.py        system prompt + per-round context: everything the PAL is told
-  tools.py          the PAL's draw tool + handler
+  tools.py          the PAL's tools: draw (LLM) + written_word_on_paper (Raven vision)
   words.py          28-word v1 bank (+ all 345 Quick Draw categories for reference)
   strokes.json      stroke templates, one per word
   store.py          SQLite persistence
@@ -318,7 +327,7 @@ backend/
   webhooks.py       HMAC verification + callback handling
   setup_tavus.py    create the PAL once; --update applies prompt and settings changes in place
   inspect_game.py   `make last-game`: one game's rounds, guesses and latency from the DB
-  evals/            golden_set.json + run_evals.py (43 cases, many replaying live games)
+  evals/            golden_set.json + run_evals.py (46 cases, many replaying live games)
   tests/            test_api.py (HTTP, secrets, webhooks), test_game.py (timing, holds, swaps)
 frontend/src/
   App.tsx  Landing.tsx  Game.tsx  CviEmbed.tsx  Canvas.tsx  Scoreboard.tsx  api.ts
