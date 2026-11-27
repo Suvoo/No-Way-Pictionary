@@ -8,7 +8,7 @@ Rules (v1, rule-based):
   - user speech counts as a guess only if it is short (<= MAX_GUESS_WORDS after fillers
     are stripped) or it contains the secret word; longer chatter is logged, not counted
   - PAL speech is scanned for guess patterns ("is it a X?") as a fallback to the
-    submit_guess tool
+    submit_guess tool (speech is the main path in practice)
 """
 from __future__ import annotations
 
@@ -114,3 +114,50 @@ def is_unsure(text: str) -> bool:
 def same_guess(a: str, b: str) -> bool:
     na, nb = normalize(a), normalize(b)
     return na == nb or na.rstrip("s") == nb.rstrip("s")
+
+
+# ---------------------------------------------------------------- voice commands between rounds
+
+_START_PHRASES = [
+    "let's start", "lets start", "let us start", "start", "start the game", "start round", "let's go", "lets go",
+    "go", "ready", "i'm ready", "im ready", "we're ready", "next round", "next", "let's play", "lets play",
+    "begin", "let's begin", "let's do it", "lets do it", "let's do this", "bring it on", "hit me",
+]
+_NOT_YET = ["not ready", "not yet", "don't start", "dont start", "do not start", "wait", "hold on", "one sec",
+            "one second", "give me a", "hang on", "not now", "stop"]
+
+
+def is_start_intent(text: str) -> bool:
+    """Player wants to start / move to the next round ("let's start", "go", "ready", "next round").
+    Negatives like "I'm not ready" or "wait" win over any start phrase."""
+    norm = normalize(text)
+    if not norm or any(_phrase_in(normalize(p), norm) for p in _NOT_YET):
+        return False
+    return any(_phrase_in(normalize(p), norm) for p in _START_PHRASES)
+
+
+# ---------------------------------------------------------------- near misses (speech-to-text mishearings)
+
+def _edit_distance(a: str, b: str) -> int:
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def is_near_miss(guess: str, word: str) -> bool:
+    """A guess that is almost the word, like "slow man" for "snowman": probably a mishearing.
+    Spaces are ignored; 1 letter off for words of 4-6 letters, 2 for longer. 3-letter words never
+    count as near misses (cat/car/cap are real different guesses)."""
+    g = normalize(guess).replace(" ", "")
+    for answer in accepted_answers(word):
+        a = answer.replace(" ", "")
+        if len(a) < 4 or g == a:
+            continue
+        limit = 1 if len(a) <= 6 else 2
+        if abs(len(g) - len(a)) <= limit and _edit_distance(g, a) <= limit:
+            return True
+    return False

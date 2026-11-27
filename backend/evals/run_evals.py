@@ -32,9 +32,10 @@ def _words_for(word: str, slot: int) -> List[str]:
 
 def run_round_case(case: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
     mode, word = case["mode"], case["word"]
-    g = game.new_game(T0, words=_words_for(word, 0 if mode == "user_draw" else 1))
+    g = game.new_game(T0, words=_words_for(word, 1 if mode == "pal_draw" else 0))
     now = T0
-    game.start_round(g, now)
+    if mode != "lobby":  # lobby = game created, round 1 not started yet
+        game.start_round(g, now)
     if mode == "pal_draw":  # finish round 1 quickly, then start round 2
         game.end_round(g, now, winner="user", reason="timeout")
         game.start_round(g, now)
@@ -72,6 +73,8 @@ def run_round_case(case: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
         check("status", r.status == exp["status"], f"got {r.status}")
     if "state" in exp:
         check("state", g.state == exp["state"], f"got {g.state}")
+    if "started_by" in exp:
+        check("started_by", r.started_by == exp["started_by"], f"got {r.started_by}")
     if "first_guess" in exp:
         counted = [x for x in g.guesses if x.round == r.index and x.counted]
         check("first_guess", bool(counted) and counted[0].guess == exp["first_guess"],
@@ -113,7 +116,7 @@ def run_round_case(case: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
 
 def run_case(case: Dict[str, Any]) -> List[str]:
     mode, exp = case["mode"], case["expect"]
-    if mode in ("user_draw", "pal_draw"):
+    if mode in ("user_draw", "pal_draw", "lobby"):
         return run_round_case(case)[0]
     if mode == "word_bank":
         return [] if (case["word"] in WORDS) == exp["in_bank"] else [f"in_bank is {case['word'] in WORDS}"]

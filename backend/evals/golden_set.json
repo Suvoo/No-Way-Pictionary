@@ -384,7 +384,7 @@
     },
     {
       "id": 20,
-      "title": "Live replay (Nov 26): PAL that has not guessed is prompted to look (8s and 24s)",
+      "title": "Live replay (Nov 26): PAL that has not guessed is prompted to look, then again if still quiet",
       "mode": "user_draw",
       "word": "moon",
       "events": [
@@ -419,7 +419,7 @@
     },
     {
       "id": 21,
-      "title": "No look prompt once the PAL is already guessing",
+      "title": "A PAL that keeps talking and guessing is not prompted",
       "mode": "user_draw",
       "word": "moon",
       "events": [
@@ -428,11 +428,19 @@
           "pal": "Is it a ball?"
         },
         {
-          "t": 9,
+          "t": 10,
+          "pal": "Hmm, a line on top... is it an apple?"
+        },
+        {
+          "t": 12,
           "tick": true
         },
         {
-          "t": 25,
+          "t": 16,
+          "pal": "Wait, now it looks round."
+        },
+        {
+          "t": 18,
           "tick": true
         }
       ],
@@ -468,6 +476,127 @@
           1
         ],
         "strokes_drawn_min": 3
+      }
+    },
+    {
+      "id": 23,
+      "title": "Live replay (Nov 26): prompted to look at ~9s, then again when it goes quiet after a wrong guess",
+      "mode": "user_draw",
+      "word": "moon",
+      "events": [
+        {
+          "t": 18,
+          "pal": "A circle with little shapes inside... is it a pizza?"
+        },
+        {
+          "t": 20,
+          "tick": true
+        },
+        {
+          "t": 28,
+          "tick": true
+        }
+      ],
+      "expect": {
+        "say_count_contains": [
+          "Look at the camera now",
+          2
+        ],
+        "guesses_used": 1,
+        "status": "active"
+      }
+    },
+    {
+      "id": 24,
+      "title": "Live replay (Nov 26): saying \"No, let's start.\" starts round 1 by voice",
+      "mode": "lobby",
+      "word": "star",
+      "events": [
+        {
+          "t": 1,
+          "user": "No, let's start."
+        }
+      ],
+      "expect": {
+        "state": "USER_DRAW",
+        "started_by": "voice"
+      }
+    },
+    {
+      "id": 25,
+      "title": "\"I'm not ready yet\" does not start the round",
+      "mode": "lobby",
+      "word": "star",
+      "events": [
+        {
+          "t": 1,
+          "user": "I'm not ready yet, hold on."
+        },
+        {
+          "t": 3,
+          "user": "Who are you?"
+        }
+      ],
+      "expect": {
+        "state": "ROUND_START"
+      }
+    },
+    {
+      "id": 26,
+      "title": "Saying \"Next round!\" after a reveal starts the next round",
+      "mode": "user_draw",
+      "word": "fish",
+      "events": [
+        {
+          "t": 5,
+          "pal": "An oval with a little tail... is it a fish?"
+        },
+        {
+          "t": 9,
+          "user": "Next round!"
+        }
+      ],
+      "expect": {
+        "state": "PAL_DRAW",
+        "started_by": "voice"
+      }
+    },
+    {
+      "id": 27,
+      "title": "Live replay (Nov 26): \"slow man\" for snowman is a near miss, not a wasted guess",
+      "mode": "pal_draw",
+      "word": "snowman",
+      "events": [
+        {
+          "t": 10,
+          "user": "Slow man."
+        },
+        {
+          "t": 20,
+          "user": "Snowman."
+        }
+      ],
+      "expect": {
+        "winner": "user",
+        "guesses_used": 1,
+        "log_contains_note": "possible mishearing",
+        "say_contains": "so close"
+      }
+    },
+    {
+      "id": 28,
+      "title": "Short words are never near misses: \"car\" for cat is a real wrong guess",
+      "mode": "pal_draw",
+      "word": "cat",
+      "events": [
+        {
+          "t": 5,
+          "user": "car"
+        }
+      ],
+      "expect": {
+        "guesses_used": 1,
+        "status": "active"
       }
     }
   ]

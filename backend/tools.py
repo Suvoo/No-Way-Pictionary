@@ -8,8 +8,8 @@ Delivery path (verified against the Tavus OpenAPI spec, Nov 26 2026):
     -> backend sends `conversation.tool_result` to Tavus server-side (send-app-message)
 
 Tools:
-  submit_guess(guess)  PAL guesses the player's drawing. The backend scores it, not the PAL.
   draw_next_stroke()   PAL adds the next pre-made stroke to the canvas.
+  submit_guess(guess)  retired (see RETIRED_TOOLS); PAL guesses are scored from its speech.
   (request_hint is a button for the player, see app.py; reveal_answer is game.end_round,
    backend-only, deliberately NOT exposed to the PAL so it cannot end a round early.)
 """
@@ -20,23 +20,13 @@ from typing import Any, Dict, List, Tuple
 
 from backend import game, scorer
 
-# Sent to POST /v2/tools by backend/setup_tavus.py
+# Sent to POST /v2/tools by backend/setup_tavus.py.
+# submit_guess was retired after two live games: the PAL never called it, and the referee scores what
+# the PAL says out loud instead (scorer.extract_pal_guesses), which is what the player hears anyway.
+# Its handler below stays, so a stray call is still scored the same way.
+RETIRED_TOOLS = {"submit_guess"}
+
 TOOL_SPECS: List[Dict[str, Any]] = [
-    {
-        "name": "submit_guess",
-        "description": (
-            "Call this every time you guess what the player has drawn on their paper, in rounds where "
-            "the PLAYER is drawing. Pass only the object name, e.g. 'bicycle'. The game server checks it "
-            "and tells you if it was right and how many guesses are left. Never call it when you are drawing."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {"guess": {"type": "string", "description": "The object you think is drawn, one or two words."}},
-            "required": ["guess"],
-        },
-        "on_call": "silent",
-        "on_resolve": "add_to_context",
-    },
     {
         "name": "draw_next_stroke",
         "description": (

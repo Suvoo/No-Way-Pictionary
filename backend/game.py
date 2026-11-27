@@ -2,7 +2,7 @@
 
 States, in order (no skipping, one round at a time):
 
-    ROUND_START  game created, Tavus call joining, waiting for the player to press Start
+    ROUND_START  game created, Tavus call joining, waiting for the player to start (button or voice)
     USER_DRAW    rounds 1, 3, 5: player draws on paper, PAL guesses
     PAL_DRAW     rounds 2, 4, 6: PAL draws on the canvas, player guesses
     REVEAL       round over: word shown, point given, waiting for "Next round"
@@ -40,7 +40,8 @@ MAX_GUESSES = 3
 LATE_GRACE_SECONDS = 3.0  # a guess heard this soon after the buzzer still counts (speech-to-event lag measured ~1-2s live)
 AUTO_STROKE_SECONDS = 7  # backend draws the next stroke itself if the PAL has not for this long
 SILENCE_NUDGE_SECONDS = 10  # PAL-draw round: nudge the player once after this much silence
-LOOK_NUDGES_AT = (8, 24)  # player-draw round: prompt the PAL to look if it has not guessed yet
+LOOK_QUIET_SECONDS = 9  # player-draw round: prompt the PAL to look again after this long without it speaking
+MAX_LOOK_NUDGES = 3
 NARRATE_QUIET_SECONDS = 4  # auto-stroke: PAL narrates it only if both sides have been quiet this long
 CONTINUATION_SECONDS = 10  # a user utterance that extends the previous one within this window is one utterance
 HINT_AFTER_WRONG = 2  # hint unlocks after this many wrong guesses...
@@ -97,7 +98,9 @@ class Round:
     last_stroke_at: Optional[float] = None
     last_user_speech_at: Optional[float] = None
     nudged: bool = False
+    started_by: str = "button"  # "button" or "voice" (audit only)
     look_nudges: int = 0
+    last_look_nudge_at: Optional[float] = None
     last_pal_speech_at: Optional[float] = None
     last_user_text: str = ""
     hint_shown: bool = False
@@ -221,7 +224,7 @@ def end_round(g: Game, now: float, winner: str, reason: str) -> List[Effect]:
     else:
         effects.append({"kind": "say", "text": (
             f"[game] Round {r.index} is over ({how}). The word was {r.word}. React in one short "
-            "sentence and tell the player to press Next round.")})
+            "sentence and tell the player to say \"next round\" when ready.")})
     return effects
 
 
@@ -245,14 +248,17 @@ def tick(g: Game, now: float) -> List[Effect]:
         return end_round(g, now, winner=r.drawer, reason="timeout")
     effects: List[Effect] = []
     if r.drawer == "user":
-        # Live finding: the PAL waits for the player to speak before it looks. Prompt it to look.
-        pal_guessed = any(x.round == r.index and x.guesser == "pal" for x in g.guesses)
-        due = [t for t in LOOK_NUDGES_AT if now - (r.started_at or now) >= t]
-        if not pal_guessed and len(due) > r.look_nudges:
-            r.look_nudges = len(due)
+        # Live findings: the PAL waits for the player to speak before it looks, and goes quiet after a
+        # wrong guess. Whenever it has been quiet for LOOK_QUIET_SECONDS (and since the last prompt),
+        # prompt it to look again, up to MAX_LOOK_NUDGES times a round.
+        quiet_since = max(r.last_pal_speech_at or 0, r.started_at or 0, r.last_look_nudge_at or 0)
+        if r.look_nudges < MAX_LOOK_NUDGES and now - quiet_since >= LOOK_QUIET_SECONDS:
+            r.look_nudges += 1
+            r.last_look_nudge_at = now
             effects.append({"kind": "say", "text": (
-                "[game] Look at the camera now. If the player is holding up paper, say what you see and "
-                "make a guess. If you cannot see any paper, ask them to hold it up, close and steady.")})
+                "[game] Look at the camera now and keep guessing, in your own words (do not repeat this message). "
+                "Describe what you see and guess, or change your guess if you already made one. Only if you "
+                "truly see no paper, ask the player to hold it up.")})
     if r.drawer == "pal":
         if r.last_stroke_at is not None and now - r.last_stroke_at >= AUTO_STROKE_SECONDS:
             label, _ = draw_next_stroke(g, now, by="auto")
@@ -351,6 +357,14 @@ def record_guess(g: Game, guesser: str, raw: str, guess: Optional[str], now: flo
                 return log("same guess, heard twice")
             return log("already tried")
 
+    if guesser == "user" and source == "speech" and not scorer.matches_word(guess, r.word) and scorer.is_near_miss(guess, r.word):
+        # Live finding: "Snowman" was transcribed as "slow man". Almost the word = probably a mishearing,
+        # so it does not use up a guess; the PAL asks the player to say it again.
+        log("close: possible mishearing, not counted")
+        return entry, [{"kind": "say", "text": (
+            f"[game] The player said '{guess}', which sounds very close to your word. In one short sentence, "
+            "tell them it's so close and to say it again clearly. Do not say the word.")}]
+
     entry.counted = True
     r.guesses_used += 1
     if scorer.matches_word(guess, r.word):
@@ -377,7 +391,16 @@ def record_guess(g: Game, guesser: str, raw: str, guess: Optional[str], now: flo
 
 
 def handle_user_speech(g: Game, text: str, now: float, source: str = "speech") -> List[Effect]:
-    if g.state not in ACTIVE_STATES or text.strip().startswith("[game]"):
+    if text.strip().startswith("[game]"):
+        return []
+    if g.state in ("ROUND_START", "REVEAL"):
+        # Voice start: "let's start", "go", "ready", "next round" do what the Start / Next button does.
+        if scorer.is_start_intent(text):
+            effects = start_round(g, now)
+            g.round().started_by = "voice"
+            return effects
+        return []
+    if g.state not in ACTIVE_STATES:
         return []
     r = g.round()
     # Live finding: Tavus re-sends a growing user utterance ("No, I think-" then "No, I think- Drummers.").
@@ -495,7 +518,7 @@ def scoreboard(g: Game) -> Dict[str, Any]:
 def _round_summary(r: Round) -> Dict[str, Any]:
     return {"index": r.index, "drawer": r.drawer, "word": r.word, "winner": r.winner,
             "end_reason": r.end_reason, "guesses_used": r.guesses_used,
-            "strokes_drawn": r.strokes_drawn, "flags": list(r.flags)}
+            "strokes_drawn": r.strokes_drawn, "flags": list(r.flags), "started_by": r.started_by}
 
 
 def _guess_view(x: Guess) -> Dict[str, Any]:

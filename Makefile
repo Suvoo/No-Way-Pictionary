@@ -3,7 +3,7 @@ PY ?= python3
 VENV = .venv
 BIN = $(VENV)/bin
 
-.PHONY: setup dev backend frontend eval test check tavus-setup build docker
+.PHONY: setup dev stop backend frontend eval test check tavus-setup tavus-update build docker
 
 setup:            ## install backend (venv) + frontend deps
 	$(PY) -m venv $(VENV)
@@ -17,6 +17,9 @@ dev:              ## backend on :8000 + frontend on :5173 (open http://localhost
 	$(BIN)/uvicorn backend.app:app --reload --port 8000 & \
 	(cd frontend && npm run dev) & \
 	wait
+
+stop:             ## free ports 8000 + 5173 if a previous `make dev` left something running
+	-@lsof -ti tcp:8000 -ti tcp:5173 -sTCP:LISTEN | xargs kill -9 2>/dev/null; echo "ports 8000 and 5173 are free"
 
 backend:
 	$(BIN)/uvicorn backend.app:app --reload --port 8000
@@ -35,6 +38,9 @@ check: eval test  ## everything an agent should run after a change
 
 tavus-setup:      ## one-time: create the PAL + tools on Tavus, prints TAVUS_PAL_ID
 	$(BIN)/python -m backend.setup_tavus
+
+tavus-update:     ## after changing Pip's prompt or settings: update the PAL in TAVUS_PAL_ID in place
+	$(BIN)/python -m backend.setup_tavus --update
 
 build:            ## production frontend build (served by FastAPI from frontend/dist)
 	cd frontend && npm run build
