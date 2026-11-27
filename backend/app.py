@@ -78,7 +78,13 @@ def setup_pip() -> None:
 async def lifespan(_: FastAPI):
     await asyncio.to_thread(setup_pip)
     task = asyncio.create_task(_ticker())
-    log.info("mode: %s", "LIVE (Tavus)" if tavus.enabled else "DEMO (no TAVUS_API_KEY)")
+    mode = "LIVE (Tavus)" if tavus.enabled else "DEMO (no TAVUS_API_KEY)"
+    log.info("mode: %s", mode)
+    open_url = os.getenv("OPEN_URL")  # set by docker-compose: the address on the host, not uvicorn's 0.0.0.0:8000
+    if open_url:  # printed just after uvicorn's own "running on" line, so it is the last thing in the output
+        asyncio.get_running_loop().call_later(0.5, lambda: log.info(
+            "\n\n    Doodle with Pip is ready in %s mode. Open %s in your browser.\n",
+            "live" if tavus.enabled else "demo", open_url))
     yield
     task.cancel()
 

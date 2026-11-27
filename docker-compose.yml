@@ -6,6 +6,8 @@ services:
     build: .
     ports:
       - "8080:8000"
+    environment:
+      OPEN_URL: http://localhost:8080   # printed in the logs once the app is up
     env_file:
       - path: .env
         required: false

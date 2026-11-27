@@ -57,4 +57,4 @@ build:            ## production frontend build (served by FastAPI from frontend/
 	cd frontend && npm run build
 
 docker:           ## run the production image locally on http://localhost:8080
-	docker build -t doodle-with-pip . && docker run --rm -p 8080:8000 --env-file .env doodle-with-pip
+	docker build -t doodle-with-pip . && docker run --rm -p 8080:8000 -e OPEN_URL=http://localhost:8080 --env-file .env doodle-with-pip
