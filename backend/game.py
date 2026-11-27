@@ -37,9 +37,12 @@ from backend.words import V1_WORDS, WORDS
 ROUNDS = 6
 ROUND_SECONDS = 45
 MAX_GUESSES = 3
-LATE_GRACE_SECONDS = 1.5  # a guess that arrives this soon after the buzzer still counts (network lag)
+LATE_GRACE_SECONDS = 3.0  # a guess heard this soon after the buzzer still counts (speech-to-event lag measured ~1-2s live)
 AUTO_STROKE_SECONDS = 7  # backend draws the next stroke itself if the PAL has not for this long
 SILENCE_NUDGE_SECONDS = 10  # PAL-draw round: nudge the player once after this much silence
+LOOK_NUDGES_AT = (8, 24)  # player-draw round: prompt the PAL to look if it has not guessed yet
+NARRATE_QUIET_SECONDS = 4  # auto-stroke: PAL narrates it only if both sides have been quiet this long
+CONTINUATION_SECONDS = 10  # a user utterance that extends the previous one within this window is one utterance
 HINT_AFTER_WRONG = 2  # hint unlocks after this many wrong guesses...
 HINT_AFTER_SECONDS = 20  # ...or this many seconds into the round
 SAME_GUESS_WINDOW = 8  # same guess via tool + transcript within this window = one guess
@@ -94,6 +97,9 @@ class Round:
     last_stroke_at: Optional[float] = None
     last_user_speech_at: Optional[float] = None
     nudged: bool = False
+    look_nudges: int = 0
+    last_pal_speech_at: Optional[float] = None
+    last_user_text: str = ""
     hint_shown: bool = False
     flags: List[str] = field(default_factory=list)  # audit notes, e.g. "player said the word out loud"
 
@@ -238,12 +244,28 @@ def tick(g: Game, now: float) -> List[Effect]:
     if r.deadline is not None and now > r.deadline + LATE_GRACE_SECONDS:
         return end_round(g, now, winner=r.drawer, reason="timeout")
     effects: List[Effect] = []
+    if r.drawer == "user":
+        # Live finding: the PAL waits for the player to speak before it looks. Prompt it to look.
+        pal_guessed = any(x.round == r.index and x.guesser == "pal" for x in g.guesses)
+        due = [t for t in LOOK_NUDGES_AT if now - (r.started_at or now) >= t]
+        if not pal_guessed and len(due) > r.look_nudges:
+            r.look_nudges = len(due)
+            effects.append({"kind": "say", "text": (
+                "[game] Look at the camera now. If the player is holding up paper, say what you see and "
+                "make a guess. If you cannot see any paper, ask them to hold it up, close and steady.")})
     if r.drawer == "pal":
         if r.last_stroke_at is not None and now - r.last_stroke_at >= AUTO_STROKE_SECONDS:
             label, _ = draw_next_stroke(g, now, by="auto")
             if label:
-                effects.append({"kind": "append_context", "text": (
-                    f"[game] Stroke {r.strokes_drawn} just appeared on the canvas: {label}.")})
+                quiet = (now - (r.last_pal_speech_at or 0) >= NARRATE_QUIET_SECONDS
+                         and now - (r.last_user_speech_at or 0) >= NARRATE_QUIET_SECONDS)
+                if quiet:  # nobody is talking: have the PAL narrate the new line out loud
+                    effects.append({"kind": "say", "text": (
+                        f"[game] Stroke {r.strokes_drawn} just appeared on the canvas: {label}. "
+                        "Describe the new line in a few words, without saying the word.")})
+                else:  # someone is mid-sentence: tell the PAL silently, do not talk over them
+                    effects.append({"kind": "append_context", "text": (
+                        f"[game] Stroke {r.strokes_drawn} just appeared on the canvas: {label}.")})
         quiet_since = max(r.last_user_speech_at or 0, r.started_at or 0)
         if not r.nudged and now - quiet_since >= SILENCE_NUDGE_SECONDS:
             r.nudged = True
@@ -358,7 +380,17 @@ def handle_user_speech(g: Game, text: str, now: float, source: str = "speech") -
     if g.state not in ACTIVE_STATES or text.strip().startswith("[game]"):
         return []
     r = g.round()
+    # Live finding: Tavus re-sends a growing user utterance ("No, I think-" then "No, I think- Drummers.").
+    # Only the new tail of an utterance that extends the previous one is scored, and a fragment that
+    # ends mid-sentence (trailing dash) is not a guess yet.
+    prev, full = scorer.normalize(r.last_user_text), scorer.normalize(text)
+    if (prev and len(full) > len(prev) and full.startswith(prev)
+            and now - (r.last_user_speech_at or 0) <= CONTINUATION_SECONDS):
+        text = full[len(prev):].strip()
+    r.last_user_text = full
     r.last_user_speech_at = now
+    if not text or text.rstrip().endswith(("—", "–", "-", "...", "…")):
+        return []
     norm = scorer.normalize(text)
     if r.drawer == "user":
         # The player is drawing. If they say their own word out loud, flag it (cheating audit).
@@ -380,9 +412,10 @@ def handle_user_speech(g: Game, text: str, now: float, source: str = "speech") -
 
 
 def handle_pal_speech(g: Game, text: str, now: float) -> List[Effect]:
-    if g.state not in ACTIVE_STATES:
+    if g.state not in ACTIVE_STATES or text.strip().startswith("[game]"):
         return []
     r = g.round()
+    r.last_pal_speech_at = now
     if r.drawer == "pal":
         if scorer.matches_word(text, r.word) and "PAL said its own word" not in r.flags:
             r.flags.append("PAL said its own word")

@@ -7,7 +7,7 @@
 - **Live link:** `TODO: add after deploy`
 - **Repo:** https://github.com/Suvoo/No-Way-Pictionary
 - **Run it locally in 3 steps:** see [Quick start](#quick-start). It works with **no Tavus key** (demo mode).
-- **Check it works:** `make check` runs the golden-set eval (18 cases), API tests and the frontend build.
+- **Check it works:** `make check` runs the golden-set eval (22 cases), API tests and the frontend build.
 
 ---
 
@@ -79,7 +79,7 @@ Split deploy is also supported (frontend on Vercel with `VITE_API_URL=https://<b
  ┌────────────────────────────────────┐               ┌─────────────────────────────────────────┐
  │ Landing -> Game -> Scoreboard      │  POST /games  │ app.py      routes                      │
  │                                    │──────────────>│ game.py     state machine, timer, rules │
- │ CviEmbed (Daily iframe)            │<── room url ──│ scorer.py   guess matching + synonyms   │
+ │ CviEmbed (Daily call object)       │<── room url ──│ scorer.py   guess matching + synonyms   │
  │   PAL video + your camera          │               │ tools.py    submit_guess, draw_next_... │
  │   app-messages from Tavus:         │  POST /events │ prompts.py  everything the PAL is told  │
  │   utterances + tool calls ─────────┼──────────────>│ store.py    SQLite, one row per game    │
@@ -96,9 +96,9 @@ Split deploy is also supported (frontend on Vercel with `VITE_API_URL=https://<b
  └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Browser.** One page: landing, then game, then scoreboard. It renders whatever state the backend returns and owns no rules. The canvas is shown **only** in PAL-draw rounds, and the word box only in yours, so paper stays the input and canvas the output. `CviEmbed.tsx` joins the Daily room and **relays** Tavus app-messages (`conversation.utterance`, `conversation.tool_call`) to the backend, because Tavus delivers those only to the browser (see [Tavus API notes](#tavus-api-notes-verified-nov-26-2026)).
+**Browser.** One page: landing, then game, then scoreboard. It renders whatever state the backend returns and owns no rules. The canvas is shown **only** in PAL-draw rounds, and the word box only in yours, so paper stays the input and canvas the output. Layout: the live video is the stage (two thirds of the width on desktop) and the round's controls sit in a slim rail; on phones they stack. `CviEmbed.tsx` joins the Daily room with a Daily *call object* and draws the tracks itself: Pip's video fills the stage, the player's camera is a small corner preview for aiming the paper, Pip's lines appear as captions, and there is no stock pre-join screen. It also **relays** Tavus app-messages (`conversation.utterance`, `conversation.tool_call`) to the backend, because Tavus delivers those only to the browser (see [Tavus API notes](#tavus-api-notes-verified-nov-26-2026)).
 
-**Backend state machine (`game.py`).** `ROUND_START -> USER_DRAW | PAL_DRAW -> REVEAL -> ... -> GAME_OVER`. Rules enforced in code, not in the prompt: 45s timer (server clock, 1.5s network grace), 3 guesses, no duplicate words per game, a repeated guess does not burn a try, auto-stroke every 7s if the PAL stalls, a single nudge after 10s of silence. It is pure: it takes `now` and returns *effects* (messages for the PAL) instead of calling Tavus, which is why the eval can replay rounds without a video call.
+**Backend state machine (`game.py`).** `ROUND_START -> USER_DRAW | PAL_DRAW -> REVEAL -> ... -> GAME_OVER`. Rules enforced in code, not in the prompt: 45s timer (server clock, 3s grace for speech lag), 3 guesses, no duplicate words per game, a repeated guess does not burn a try, auto-stroke every 7s if the PAL stalls (narrated out loud only when nobody is talking), a single nudge after 10s of silence, and in the player's rounds a "look at the camera now" prompt at 8s and 24s if the PAL has not guessed yet. A user utterance that Tavus re-sends as it grows ("No, I think-" then "No, I think- drummers") is scored once, on its new words only. It is pure: it takes `now` and returns *effects* (messages for the PAL) instead of calling Tavus, which is why the eval can replay rounds without a video call.
 
 **Secret handling.** The backend knows every word but tells one side at a time:
 - *Your round:* the word goes to the browser only. The PAL gets "the player is drawing, you do not know the word".
@@ -157,7 +157,7 @@ curl -s -X POST localhost:8000/api/games/Xk2../events -H 'X-Player-Token: 9fQ..'
 **You don't have to trust the PAL.** The backend picks the words, keeps each secret on the right side, checks every spoken guess against the secret, and logs every guess with a timestamp, its source (tool, transcript, speech, typed) and why it did or did not count. The PAL talks; the backend referees.
 
 1. **Measured spike (before building, Nov 26 2026):** a Raven-2 PAL, 5 easy words (star, house, fish, bicycle, cat), thick black marker, held steady for 3s, good room light, real phone browser: **5/5 correct within 3 guesses.** That is the only perception result claimed. It is 5 easy words, not all 345 categories.
-2. **Golden-set eval (`make eval`):** 18 scripted cases replayed against the real engine with a fake clock. They prove the game logic: scoring, timers, synonyms, repeats, secret handling, cheat flags, the honesty fallback, and that the PAL cannot guess in its own round.
+2. **Golden-set eval (`make eval`):** 22 scripted cases (including replays of real live-game transcripts) replayed against the real engine with a fake clock. They prove the game logic: scoring, timers, synonyms, repeats, secret handling, cheat flags, the honesty fallback, and that the PAL cannot guess in its own round.
 3. **Live audit trail:** the scoreboard shows all 6 words and every guess. Anyone can re-score a game by hand from the log.
 
 ### Eval results
@@ -175,15 +175,22 @@ PASS  # 9  Silent player: PAL nudges once after 10s, backend keeps drawing
 PASS  #10  Cannot see paper: honesty fallback is logged, not counted as a guess
 PASS  #11  Synonym counts: 'kitty' is accepted for cat
 PASS  #12  Repeated wrong guess does not burn a second guess
-PASS  #13  Guess 1s after the buzzer still counts (network grace)
+PASS  #13  Guess 2.5s after the buzzer still counts (speech lag grace)
 PASS  #14  Late guess after grace window is rejected
 PASS  #15  Anti-cheat: PAL-draw word never appears in what the browser sees
 PASS  #16  Player says their own word out loud while drawing: flagged in the audit log
 PASS  #17  PAL tries to guess in its own drawing round: refused
 PASS  #18  Every v1 word has 3-7 stroke template strokes and a hint
 
-18/18 passed
+PASS  #19  Live replay (Nov 26): a growing utterance is one guess, not three
+PASS  #20  Live replay (Nov 26): PAL that has not guessed is prompted to look (8s and 24s)
+PASS  #21  No look prompt once the PAL is already guessing
+PASS  #22  Auto-stroke is narrated out loud only when nobody is talking
+
+22/22 passed
 ```
+
+**First live game (Nov 26 2026):** a full 6-round game against the live PAL, 4-2. Secrets held, the PAL's guesses were refereed through both the tool and the speech fallback, and the call closed itself. It also surfaced 4 problems that are now fixed and covered by cases 13 and 19 to 22: a growing utterance counted as 3 guesses, the PAL's correct guess arrived 1s after a 1.5s grace window, the PAL waited for the player to speak before looking, and strokes drawn by the timer were never narrated.
 
 **What the eval does not prove:** that Raven reads every drawing, or that the PAL always follows its prompt (calls the tool, waits its turn, says "hold it closer" instead of guessing). Cases 9 and 10 check the *backend* side of those behaviours (the nudge fires, an "I can't see" line is not counted, the prompt contains the rule). Whether the PAL follows the rule live is checked by playing, and the guess log records what it did.
 
@@ -215,7 +222,7 @@ PASS  #18  Every v1 word has 3-7 stroke template strokes and a hint
 
 ## Edge cases
 
-Handled in v1: synonyms and plurals · repeated guesses · the same guess heard twice (tool + speech) · late guesses (1.5s grace, then rejected) · timer expiry (drawer wins) · duplicate words in a game · Play Again avoiding the last game's words · the player saying their own word out loud (flagged) · the PAL saying its own word (flagged) · the PAL guessing in its own round (refused) · "can't see, hold it closer" (logged, not a guess) · a silent player (one nudge + auto strokes) · a PAL that stops drawing (auto stroke every 7s) · duplicate webhooks and relayed events (idempotent) · garbage or malformed events (ignored, never crash) · a dropped call (Reconnect, same game) · a backend restart (state persisted after every change) · the conversation left open (closed at game end, plus a 20 min `max_call_duration` cap).
+Handled in v1: synonyms and plurals · repeated guesses · the same guess heard twice (tool + speech) · late guesses (3s grace, then rejected) · a growing or cut-off utterance (scored once, fragments ignored) · a PAL that waits instead of looking (prompted at 8s and 24s) · timer expiry (drawer wins) · duplicate words in a game · Play Again avoiding the last game's words · the player saying their own word out loud (flagged) · the PAL saying its own word (flagged) · the PAL guessing in its own round (refused) · "can't see, hold it closer" (logged, not a guess) · a silent player (one nudge + auto strokes) · a PAL that stops drawing (auto stroke every 7s) · duplicate webhooks and relayed events (idempotent) · garbage or malformed events (ignored, never crash) · a dropped call (Reconnect, same game) · a backend restart (state persisted after every change) · the conversation left open (closed at game end, on Home or Play again, plus a 20 min `max_call_duration` cap).
 
 Noted, not built in v1: writing the word on paper (the prompt tells the PAL to call it out, with no automatic detection) · holding up a phone image or print · a second person shouting guesses (no speaker ID) · lined or grid paper, a mirrored front camera, glare, shaky hands · rude drawings (prompt-level only) · rotating the phone mid-round · running out of Tavus minutes mid-game (the create call fails cleanly with a message, but there is no warning mid-game) · a slow connection delaying Raven's view.
 

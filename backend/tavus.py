@@ -83,6 +83,8 @@ class TavusClient:
         resp = self._post(f"/v2/conversations/{conversation_id}/send-app-message", body)
         if resp.status_code != 200:
             log.error("send-app-message %s failed (%s): %s", event_type, resp.status_code, resp.text[:200])
+        else:  # server-side log only; may contain the PAL's secret word for its own round
+            log.info("-> PAL %s %s: %s", conversation_id, event_type, str(properties)[:200])
 
     def end_conversation(self, conversation_id: str) -> None:
         if not self.enabled:

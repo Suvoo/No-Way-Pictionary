@@ -31,10 +31,13 @@ export default function App() {
   const [info, setInfo] = useState<NewGame | null>(loadSaved);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const api = useMemo(() => (info ? new Api(info.game_id, info.player_token) : null), [info]);
+
 
   async function play(previousGameId?: string) {
     setStarting(true);
     setError(null);
+    api?.complete().catch(() => undefined); // close the previous game's Tavus call (idempotent)
     try {
       const created = await Api.create(previousGameId);
       save(created);
@@ -47,12 +50,11 @@ export default function App() {
     }
   }
 
-  const api = useMemo(() => (info ? new Api(info.game_id, info.player_token) : null), [info]);
-
   const home = useCallback(() => {
+    api?.complete().catch(() => undefined); // leaving mid-game: close the Tavus call now, not in 3 minutes
     save(null);
     setInfo(null);
-  }, []);
+  }, [api]);
 
   if (!info || !api) return <Landing onPlay={() => play()} starting={starting} error={error} />;
   return (

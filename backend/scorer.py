@@ -25,6 +25,7 @@ _FILLER_PREFIXES = [
     "it's", "i think it's a", "i think it's", "i think it is a", "i think", "maybe a",
     "maybe", "a", "an", "the", "um", "uh", "hmm", "oh", "ok", "okay", "so", "like",
     "i guess", "could it be a", "could it be", "how about a", "how about", "what about a",
+    "no", "nope", "yes", "yeah", "wait", "well", "oh wait", "hmm wait", "actually", "or",
 ]
 _NON_GUESSES = {
     "", "yes", "no", "yeah", "nope", "wait", "hold on", "hmm", "um", "uh", "ok", "okay",

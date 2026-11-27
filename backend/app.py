@@ -203,6 +203,14 @@ async def cvi_event(game_id: str, request: Request, x_player_token: Optional[str
         raise HTTPException(400, "body must be a JSON object")
     event_type = ev.get("event_type")
     props = ev.get("properties") or {}
+    if event_type == "conversation.utterance":
+        speech = str(props.get("speech", ""))
+        if speech.startswith("[game]"):
+            log.info("<- (echo of our own [game] message, ignored)")
+        else:
+            log.info("<- %s said: %s", props.get("role"), speech[:200])
+    elif event_type == "conversation.tool_call":
+        log.info("<- PAL tool %s(%s)", props.get("name"), str(props.get("arguments", ""))[:120])
 
     def fn(g: game.Game, now: float):
         if ev.get("conversation_id") and g.conversation_id and ev["conversation_id"] != g.conversation_id:

@@ -3,7 +3,7 @@ import { FormEvent, ReactNode, useCallback, useEffect, useRef, useState } from "
 import { Api, GameView, NewGame } from "./api";
 import Canvas from "./Canvas";
 import CviEmbed, { Caption } from "./CviEmbed";
-import Scoreboard from "./Scoreboard";
+import { ScoreDetails, ScoreHeadline } from "./Scoreboard";
 
 // The game page. It renders whatever state the backend says; it owns no game rules.
 // Canvas is shown ONLY in PAL-draw rounds (and their reveal); in your rounds you draw on paper.
@@ -67,34 +67,46 @@ export default function Game({ api, info, onPlayAgain, onHome, onLost }: Props) 
   const over = view.state === "GAME_OVER";
   const showCanvas = r.drawer === "pal" && (view.state === "PAL_DRAW" || (view.state === "REVEAL" && r.strokes.length > 0));
 
+  // Layout A: the live video is the stage (two thirds), the round's controls sit in a slim rail.
+  // The stage stays mounted through GAME_OVER so the player hears Pip's goodbye.
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-4 pb-10 sm:px-6">
+    <div className="mx-auto max-w-7xl px-4 pt-4 pb-10 sm:px-6">
       <TopBar view={view} pal={pal} onQuit={() => act(api.complete)} />
 
       {error && <p className="sketch mt-3 bg-white px-4 py-2 text-sm font-semibold text-tomato">{error}</p>}
 
-      {over ? (
-        <div className="mt-6">
-          <Scoreboard view={view} pal={pal} onPlayAgain={onPlayAgain} onHome={onHome} />
-        </div>
-      ) : (
-        <div className="mt-4 grid gap-5 lg:grid-cols-2">
-          {/* Video (top on mobile, left on desktop) */}
-          <div>
-            <div className="sketch aspect-[4/3] w-full overflow-hidden bg-ink">
-              {live ? (
-                <CviEmbed url={info.conversation_url!} onRelay={onRelay} onCaption={onCaption} />
-              ) : (
-                <DemoVideo pal={pal} />
-              )}
-            </div>
-            <Captions captions={captions} pal={pal} />
+      <div className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,2.1fr)_minmax(0,1fr)]">
+        {/* Stage: top on mobile, left on desktop */}
+        <div className="min-w-0">
+          {/* 4:3 on phones so Pip's canvas still fits on screen below it; 16:10 from tablet up */}
+          <div className="sketch aspect-[4/3] w-full overflow-hidden bg-ink sm:aspect-[16/10]">
+            {live ? (
+              <CviEmbed
+                url={info.conversation_url!}
+                palName={pal}
+                onRelay={onRelay}
+                onCaption={onCaption}
+                caption={captions.pal}
+                gameOver={over}
+              />
+            ) : (
+              <DemoVideo pal={pal} />
+            )}
           </div>
+          {captions.user && !over && (
+            <p className="mt-2 text-sm text-ink-soft" aria-live="polite">
+              <span className="font-bold">You:</span> {captions.user.text}
+            </p>
+          )}
+        </div>
 
-          {/* Right panel: what this round needs */}
-          <div>
-            {/* Keyed fade-in per state. No exit animation: AnimatePresence "wait" can stall
-                while the 1s poll re-renders, leaving the old panel on screen. */}
+        {/* Rail: what this round needs */}
+        <div className="min-w-0">
+          {over ? (
+            <ScoreHeadline view={view} pal={pal} onPlayAgain={onPlayAgain} onHome={onHome} />
+          ) : (
+            /* Keyed fade-in per state. No exit animation: AnimatePresence "wait" can stall
+               while the 1s poll re-renders, leaving the old panel on screen. */
             <motion.div
                 key={`${view.state}-${r.index}`}
                 initial={{ opacity: 0, x: 12 }}
@@ -135,7 +147,11 @@ export default function Game({ api, info, onPlayAgain, onHome, onLost }: Props) 
                   </>
                 )}
 
-                {showCanvas && <Canvas strokes={r.strokes} />}
+                {showCanvas && (
+                  <div className="mx-auto w-full max-w-[260px] sm:max-w-[300px] lg:max-w-none">
+                    <Canvas strokes={r.strokes} />
+                  </div>
+                )}
 
                 {view.state === "PAL_DRAW" && (
                   <Card>
@@ -153,7 +169,13 @@ export default function Game({ api, info, onPlayAgain, onHome, onLost }: Props) 
 
                 {view.state === "REVEAL" && <Reveal view={view} pal={pal} busy={busy} onNext={() => act(api.startRound)} />}
             </motion.div>
-          </div>
+          )}
+        </div>
+      </div>
+
+      {over && (
+        <div className="mt-6">
+          <ScoreDetails view={view} pal={pal} />
         </div>
       )}
     </div>
@@ -334,24 +356,6 @@ function Reveal({ view, pal, busy, onNext }: { view: GameView; pal: string; busy
         Next round: {r.index + 1 <= view.rounds && (r.index + 1) % 2 === 1 ? "you draw" : `${pal} draws`}
       </BigButton>
     </Card>
-  );
-}
-
-function Captions({ captions, pal }: { captions: { user?: Caption; pal?: Caption }; pal: string }) {
-  if (!captions.pal && !captions.user) return null;
-  return (
-    <div className="mt-3 space-y-1 text-sm" aria-live="polite">
-      {captions.pal && (
-        <p>
-          <span className="font-bold">{pal}:</span> {captions.pal.text}
-        </p>
-      )}
-      {captions.user && (
-        <p className="text-ink-soft">
-          <span className="font-bold">You:</span> {captions.user.text}
-        </p>
-      )}
-    </div>
   );
 }
 
