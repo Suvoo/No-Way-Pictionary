@@ -55,7 +55,7 @@ class TavusClient:
         raise TavusError(f"Tavus unreachable: {path}")
 
     def create_conversation(self, context: str, greeting: str, callback_url: str = "",
-                            callback_secret: str = "", name: str = "Reverse Pictionary") -> Dict[str, Any]:
+                            callback_secret: str = "", name: str = "Doodle with Pip") -> Dict[str, Any]:
         body: Dict[str, Any] = {
             "pal_id": self.pal_id,
             "conversation_name": name,
@@ -134,8 +134,10 @@ class EffectDispatcher:
             self.client.send_app_message(cid, "conversation.overwrite_llm_context", {"context": e["text"]})
         elif kind == "append_context":
             self.client.send_app_message(cid, "conversation.append_llm_context", {"context": e["text"]})
-        elif kind == "say":
+        elif kind == "say":  # the PAL answers this in its own words (an LLM turn)
             self.client.send_app_message(cid, "conversation.respond", {"text": e["text"]})
+        elif kind == "speak":  # the PAL says exactly this text, word for word
+            self.client.send_app_message(cid, "conversation.echo", {"modality": "text", "text": e["text"], "done": True})
         elif kind == "tool_result":
             self.client.send_app_message(cid, "conversation.tool_result",
                                          {"tool_call_id": e["tool_call_id"], "output": e["output"], "status": "success"})

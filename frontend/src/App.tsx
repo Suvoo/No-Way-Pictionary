@@ -7,7 +7,7 @@ import Landing from "./Landing";
 // The current game is remembered in sessionStorage so a page refresh resumes it
 // (the backend has the state; this only remembers which game and its player token).
 
-const KEY = "reverse-pictionary-session";
+const KEY = "doodle-with-pip-session";
 
 function loadSaved(): NewGame | null {
   try {

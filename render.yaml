@@ -1,7 +1,7 @@
 # Render Blueprint: New > Blueprint > pick this repo. Then fill the secret env vars in the dashboard.
 services:
   - type: web
-    name: reverse-pictionary
+    name: doodle-with-pip
     runtime: docker
     plan: free
     healthCheckPath: /health

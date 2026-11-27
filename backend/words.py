@@ -1,4 +1,4 @@
-"""Word bank for Reverse Pictionary.
+"""Word bank for Doodle with Pip.
 
 Plain data, no game logic. To add a word:
   1. add an entry to WORDS below (variants = other answers that count as correct),
@@ -29,7 +29,7 @@ WORDS: Dict[str, WordEntry] = {
     "tree": {"variants": ["trees"], "hint": "It grows leaves.", "quickdraw": "tree"},
     "car": {"variants": ["automobile", "taxi"], "hint": "You drive it.", "quickdraw": "car"},
     "cat": {"variants": ["kitty", "kitten", "cat face"], "hint": "It says meow.", "quickdraw": "cat"},
-    "smiley face": {"variants": ["smiley", "happy face", "smile face", "smiling face", "emoji"], "hint": "It is a happy face.", "quickdraw": "smiley face"},
+    "smiley face": {"variants": ["smiley", "smile", "happy face", "smile face", "smiling face", "emoji"], "hint": "It is a happy face.", "quickdraw": "smiley face"},
     "glasses": {"variants": ["eyeglasses", "spectacles", "specs", "sunglasses"], "hint": "You wear them to see better.", "quickdraw": "eyeglasses"},
     "cup": {"variants": ["mug", "teacup", "coffee cup", "tea cup"], "hint": "You drink from it.", "quickdraw": "cup"},
     "key": {"variants": ["keys"], "hint": "It opens a door.", "quickdraw": "key"},

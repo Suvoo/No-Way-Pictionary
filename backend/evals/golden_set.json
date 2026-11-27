@@ -313,7 +313,7 @@
     },
     {
       "id": 16,
-      "title": "Player says their own word out loud while drawing: flagged in the audit log",
+      "title": "Player says their own word: it is replaced with a new word and Pip's guesses reset",
       "mode": "user_draw",
       "word": "apple",
       "events": [
@@ -327,8 +327,10 @@
         }
       ],
       "expect": {
-        "winner": "pal",
-        "flags_contains": "player said the word out loud"
+        "status": "active",
+        "guesses_used": 1,
+        "word_changed": true,
+        "flags_contains_text": "replaced with a new word"
       }
     },
     {
@@ -699,7 +701,7 @@
     },
     {
       "id": 34,
-      "title": "Live replay (Nov 26): when Pip guesses right, the reveal tells Pip it got the point (not \"you got me\")",
+      "title": "Live replay (Nov 26): when Pip guesses right, it says exactly \"Boom, it was ice cream.\"",
       "mode": "user_draw",
       "word": "ice cream",
       "events": [
@@ -710,12 +712,12 @@
       ],
       "expect": {
         "winner": "pal",
-        "say_contains": "You guessed it, your guess was right! You get the point."
+        "say_contains": "Boom, it was ice cream."
       }
     },
     {
       "id": 35,
-      "title": "When the player guesses Pip's drawing, the reveal tells Pip the player got the point",
+      "title": "When the player guesses Pip's drawing, Pip says \"Yes! It was heart. Point to you.\"",
       "mode": "pal_draw",
       "word": "heart",
       "events": [
@@ -726,7 +728,7 @@
       ],
       "expect": {
         "winner": "user",
-        "say_contains": "The player guessed your drawing correctly. They get the point."
+        "say_contains": "Yes! It was heart. Point to you."
       }
     },
     {
@@ -772,6 +774,133 @@
           "user": 0,
           "pal": 0
         }
+      }
+    },
+    {
+      "id": 38,
+      "title": "Live replay (Nov 26): \"The word is fish, bro.\" swaps the word; \"that is cheating!\" is not a guess",
+      "mode": "user_draw",
+      "word": "fish",
+      "events": [
+        {
+          "t": 20,
+          "pal": "Is it a cup?"
+        },
+        {
+          "t": 33,
+          "user": "Blue. Cheesy? The word is fish, bro."
+        },
+        {
+          "t": 34,
+          "pal": "Hey, no fair! You can't just tell me the word. That's a total foul!"
+        },
+        {
+          "t": 35,
+          "pal": "Nice try, but that is cheating! Stick to the drawing."
+        },
+        {
+          "t": 70,
+          "tick": true
+        }
+      ],
+      "expect": {
+        "status": "active",
+        "guesses_used": 0,
+        "word_changed": true
+      }
+    },
+    {
+      "id": 39,
+      "title": "Saying the word a second time in the same round gives Pip the point",
+      "mode": "user_draw",
+      "word": "fish",
+      "events": [
+        {
+          "t": 10,
+          "user": "it's a fish"
+        },
+        {
+          "t": 15,
+          "user": "the word is NEWWORD"
+        }
+      ],
+      "expect": {
+        "winner": "pal",
+        "end_reason": "gave_away",
+        "say_contains": "You said it again! It was"
+      }
+    },
+    {
+      "id": 40,
+      "title": "Live replay (Nov 26): \"Of it.\" is speech debris, not a wasted guess",
+      "mode": "pal_draw",
+      "word": "smiley face",
+      "events": [
+        {
+          "t": 20,
+          "user": "Of it."
+        }
+      ],
+      "expect": {
+        "guesses_used": 0,
+        "status": "active"
+      }
+    },
+    {
+      "id": 41,
+      "title": "Live replay (Nov 26): \"a smile\" counts for smiley face",
+      "mode": "pal_draw",
+      "word": "smiley face",
+      "events": [
+        {
+          "t": 20,
+          "user": "Snowman. A smile."
+        }
+      ],
+      "expect": {
+        "winner": "user",
+        "end_reason": "correct"
+      }
+    },
+    {
+      "id": 42,
+      "title": "Pip's exclamation counts only when it names a game word (\"Wait, it's a bicycle!\")",
+      "mode": "user_draw",
+      "word": "bicycle",
+      "events": [
+        {
+          "t": 10,
+          "pal": "Two circles. Wait, it's a bicycle!"
+        }
+      ],
+      "expect": {
+        "winner": "pal",
+        "end_reason": "correct",
+        "guesses_used": 1
+      }
+    },
+    {
+      "id": 43,
+      "title": "After a word swap, Pip may guess an old guess again on the new word (not \"already tried\")",
+      "mode": "user_draw",
+      "word": "fish",
+      "events": [
+        {
+          "t": 5,
+          "pal": "Is it a cup?"
+        },
+        {
+          "t": 10,
+          "user": "the word is fish"
+        },
+        {
+          "t": 15,
+          "pal": "Is it a cup?"
+        }
+      ],
+      "expect": {
+        "guesses_used": 1,
+        "status": "active"
       }
     }
   ]

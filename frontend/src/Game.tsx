@@ -128,6 +128,17 @@ export default function Game({ api, info, onPlayAgain, onHome, onLost }: Props) 
 
                 {view.state === "USER_DRAW" && (
                   <>
+                    {r.notice && (
+                      <motion.p
+                        key={r.your_word ?? ""}
+                        initial={{ scale: 0.9, rotate: -2 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        className="sketch bg-tomato px-4 py-3 font-bold text-white"
+                        role="alert"
+                      >
+                        🙊 {r.notice}
+                      </motion.p>
+                    )}
                     <Card className="bg-marker">
                       <p className="text-sm font-bold tracking-wide uppercase">Your secret word</p>
                       <p className="font-marker mt-1 text-5xl leading-tight break-words">{r.your_word}</p>
@@ -268,19 +279,20 @@ function WrongGuesses({ words }: { words: string[] }) {
 }
 
 function PalGuesses({ view, pal }: { view: GameView; pal: string }) {
-  const mine = view.guess_log.filter((g) => g.round === view.round.index && g.guesser === "pal");
+  // Only Pip's real guesses (the word, right or wrong). "Hold it closer", repeats and the referee's
+  // notes stay in the audit log, not on screen.
+  const mine = view.guess_log.filter((g) => g.round === view.round.index && g.guesser === "pal" && g.counted && g.guess);
   return (
     <Card>
       <p className="text-sm font-bold tracking-wide uppercase">{pal}'s guesses</p>
       {mine.length === 0 ? (
-        <p className="mt-1 text-ink-soft">Waiting for {pal} to see your drawing...</p>
+        <p className="mt-1 text-ink-soft">Waiting for {pal} to guess...</p>
       ) : (
         <ul className="mt-2 space-y-1">
           {mine.map((g, i) => (
-            <li key={i} className="flex items-center gap-2">
-              <span>{g.correct ? "✅" : g.counted ? "❌" : "💬"}</span>
-              <span className={g.counted ? "font-semibold" : "text-ink-soft"}>{g.guess ?? g.text}</span>
-              {!g.counted && <span className="text-xs text-ink-soft">({g.note})</span>}
+            <li key={i} className="flex items-center gap-2 text-lg">
+              <span>{g.correct ? "✅" : "❌"}</span>
+              <span className="font-semibold">{g.guess}</span>
             </li>
           ))}
         </ul>
@@ -340,6 +352,7 @@ function Reveal({ view, pal, busy, onNext }: { view: GameView; pal: string; busy
   const reason =
     r.end_reason === "correct"
       ? r.drawer === "user" ? `${pal} guessed your drawing.` : "You guessed it!"
+      : r.end_reason === "gave_away" ? "You said your word out loud again."
       : r.end_reason === "timeout" ? "Time ran out." : "No guesses left.";
   return (
     <Card className={youWon ? "bg-mint/20" : r.winner === "pal" ? "bg-sky/10" : "bg-white"}>

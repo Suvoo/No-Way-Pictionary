@@ -1,9 +1,9 @@
-# Reverse Pictionary. `make setup` once, then `make dev`.
+# Doodle with Pip. `make setup` once, then `make dev`. Agents: see CLAUDE.md.
 PY ?= python3
 VENV = .venv
 BIN = $(VENV)/bin
 
-.PHONY: setup dev stop backend frontend eval test check tavus-setup tavus-update build docker
+.PHONY: setup dev stop backend frontend eval test check last-game tavus-setup tavus-update build docker
 
 setup:            ## install backend (venv) + frontend deps
 	$(PY) -m venv $(VENV)
@@ -36,6 +36,9 @@ test:             ## API tests
 check: eval test  ## everything an agent should run after a change
 	cd frontend && npm run build
 
+last-game:        ## what happened in the latest game: rounds, every guess, latency (from the DB)
+	$(BIN)/python -m backend.inspect_game
+
 tavus-setup:      ## one-time: create the PAL + tools on Tavus, prints TAVUS_PAL_ID
 	$(BIN)/python -m backend.setup_tavus
 
@@ -45,5 +48,5 @@ tavus-update:     ## after changing Pip's prompt or settings: update the PAL in 
 build:            ## production frontend build (served by FastAPI from frontend/dist)
 	cd frontend && npm run build
 
-docker:           ## run the production image locally on :8000
-	docker build -t reverse-pictionary . && docker run --rm -p 8000:8000 --env-file .env reverse-pictionary
+docker:           ## run the production image locally on http://localhost:8080
+	docker build -t doodle-with-pip . && docker run --rm -p 8080:8000 --env-file .env doodle-with-pip

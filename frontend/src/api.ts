@@ -59,6 +59,7 @@ export type GameView = {
     winner: "user" | "pal" | null;
     end_reason: string | null;
     flags: string[];
+    notice: string | null;
   };
   history: RoundSummary[];
   guess_log: GuessEntry[];

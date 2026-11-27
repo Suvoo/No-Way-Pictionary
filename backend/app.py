@@ -32,7 +32,7 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(asctime)s %(
 log = logging.getLogger("app")
 
 CALLBACK_SECRET = os.getenv("TAVUS_CALLBACK_SECRET", "")
-PUBLIC_URL = os.getenv("PUBLIC_URL", "").rstrip("/")  # e.g. https://reverse-pictionary.onrender.com
+PUBLIC_URL = os.getenv("PUBLIC_URL", "").rstrip("/")  # e.g. https://doodle-with-pip.onrender.com
 store = Store(os.getenv("DB_PATH", "data/pictionary.db"))
 tavus = TavusClient(os.getenv("TAVUS_API_KEY", ""), os.getenv("TAVUS_PAL_ID", ""), os.getenv("TAVUS_FACE_ID", ""))
 dispatcher = EffectDispatcher(tavus)
@@ -61,7 +61,7 @@ async def lifespan(_: FastAPI):
     task.cancel()
 
 
-app = FastAPI(title="Reverse Pictionary", lifespan=lifespan)
+app = FastAPI(title="Doodle with Pip", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
                    allow_methods=["*"], allow_headers=["*"])
 
@@ -120,7 +120,7 @@ def create_game(body: NewGame = NewGame()) -> Dict[str, Any]:
             conv = tavus.create_conversation(
                 context=prompts.LOBBY_CONTEXT, greeting=prompts.GREETING,
                 callback_url=f"{PUBLIC_URL}/webhooks/tavus" if PUBLIC_URL and CALLBACK_SECRET else "",
-                callback_secret=CALLBACK_SECRET, name=f"Reverse Pictionary {g.id}")
+                callback_secret=CALLBACK_SECRET, name=f"Doodle with Pip {g.id}")
         except TavusError as e:
             log.error("%s", e)
             raise HTTPException(502, "Could not start the video call. The Tavus account may be out of minutes or at its concurrent call limit.")

@@ -113,6 +113,8 @@ def extract_user_guess(text: str, secret: str) -> Optional[str]:
     core = strip_fillers(text)
     if core in _NON_GUESSES or not core:
         return None
+    if _only_filler(core):  # live finding: "Of it." used up the player's last guess
+        return None
     is_question = core.split()[0] in _QUESTION_WORDS
     if is_question or len(core.split()) > MAX_GUESS_WORDS:
         return _bank_word_in(core)
@@ -120,16 +122,31 @@ def extract_user_guess(text: str, secret: str) -> Optional[str]:
 
 
 def extract_pal_guesses(text: str) -> List[str]:
-    """Guesses the PAL said out loud, in order. Fallback for when it skips the tool."""
+    """Guesses the PAL said out loud, in order: questions ("is it a cup?") always, exclamations
+    ("it's a bicycle!") only when they name a word-bank word. Live finding (Nov 26): "that is cheating!"
+    and "that's a total foul!" were scored as guesses and burned two of the PAL's three tries."""
     norm = text.lower().replace("’", "'")
     found: List[str] = []
-    matches = sorted(list(_PAL_GUESS_RE.finditer(norm)) + list(_PAL_EXCLAIM_RE.finditer(norm)), key=lambda m: m.start())
-    for m in matches:
-        g = normalize(m.group(1))
-        g = strip_fillers(g)
-        if g and g not in _NON_GUESSES and len(g.split()) <= MAX_GUESS_WORDS and g not in found:
+    tagged = [(m, False) for m in _PAL_GUESS_RE.finditer(norm)] + [(m, True) for m in _PAL_EXCLAIM_RE.finditer(norm)]
+    for m, exclaim in sorted(tagged, key=lambda t: t[0].start()):
+        g = strip_fillers(normalize(m.group(1)))
+        if exclaim:
+            g = _bank_word_in(g) or ""
+        if g and g not in _NON_GUESSES and not _only_filler(g) and len(g.split()) <= MAX_GUESS_WORDS and g not in found:
             found.append(g)
     return found
+
+
+_FILLER_WORDS = {
+    "of", "it", "its", "it's", "the", "a", "an", "and", "to", "is", "this", "that", "these", "those", "um", "uh",
+    "so", "like", "yeah", "no", "yes", "okay", "ok", "oh", "hmm", "i", "me", "you", "we", "in", "on", "at",
+    "for", "with", "be", "was", "are", "my", "your", "one", "thing", "what", "there", "here",
+}
+
+
+def _only_filler(guess: str) -> bool:
+    """Speech-to-text debris like "of it" is not a guess."""
+    return all(w in _FILLER_WORDS for w in normalize(guess).split())
 
 
 def is_unsure(text: str) -> bool:

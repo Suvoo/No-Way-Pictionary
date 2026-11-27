@@ -49,7 +49,7 @@ def run_round_case(case: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
         if "pal" in ev:
             effects += game.handle_pal_speech(g, ev["pal"], t)
         elif "user" in ev:
-            effects += game.handle_user_speech(g, ev["user"], t)
+            effects += game.handle_user_speech(g, ev["user"].replace("NEWWORD", g.round().word), t)
         elif "tool" in ev:
             out, fx = tools.handle_tool_call(g, ev["tool"], ev.get("args", {}), f"call{ev['t']}", t)
             tool_outputs.append(out)
@@ -91,7 +91,7 @@ def run_round_case(case: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
         check("strokes_drawn_min", r.strokes_drawn >= exp["strokes_drawn_min"], f"got {r.strokes_drawn}")
     if "revealed_word" in exp:
         check("revealed_word", game.public_view(g, now)["round"]["revealed_word"] == exp["revealed_word"])
-    says = [e["text"] for e in effects if e["kind"] == "say"]
+    says = [e["text"] for e in effects if e["kind"] in ("say", "speak")]
     if "say_contains" in exp:
         check("say_contains", any(exp["say_contains"] in s for s in says), f"says {says}")
     if "say_count_contains" in exp:
@@ -100,6 +100,10 @@ def run_round_case(case: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
         check("say_count", got == n, f"'{needle}' said {got} times")
     if "prompt_contains" in exp:
         check("prompt_contains", exp["prompt_contains"] in prompts.SYSTEM_PROMPT)
+    if exp.get("word_changed"):
+        check("word_changed", r.word != word and word in r.retired_words, f"word {r.word}, retired {r.retired_words}")
+    if "flags_contains_text" in exp:
+        check("flags_contains_text", any(exp["flags_contains_text"] in f for f in r.flags), f"flags {r.flags}")
     if "flags_contains" in exp:
         check("flags_contains", exp["flags_contains"] in r.flags, f"flags {r.flags}")
     if "tool_output_contains" in exp:
