@@ -325,5 +325,3 @@ frontend/src/
 ```
 
 Word bank from the [Google Quick, Draw! dataset](https://github.com/googlecreativelab/quickdraw-dataset) (CC BY 4.0). heart is a hand-added word; boat and balloon map to Quick Draw's "sailboat" and "hot air balloon".
-
-Built by Suvodeep Sinha as a Tavus Forward Deployed Engineer take-home.
