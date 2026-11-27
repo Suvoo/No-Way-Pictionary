@@ -4,7 +4,7 @@
 
 > **A PAL is a prompt. This is a system.** The PAL is one component: face, voice and guesser. The game state machine, the secret handling, the turn-taking, the referee that scores every guess, the stroke templates and the eval are the application, and none of that lives in the Tavus dashboard.
 
-- **Play it:** `TODO: live link after deploy` (no login, no setup; grab paper and a thick pen)
+- **Play it:** **https://doodle-with-pip.onrender.com** (no login, no setup; grab paper and a thick pen, allow camera and mic). Free hosting: if it has been idle, the first load takes about 50 seconds.
 - **Watch it:** `TODO: 2-minute Loom`
 - **How it works:** [Architecture](#architecture) · **Why this project:** [Why this project](#why-this-project) · **Does it work:** [Eval results and live testing](#eval-results)
 - **Repo:** https://github.com/Suvoo/No-Way-Pictionary
