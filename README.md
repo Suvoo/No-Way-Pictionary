@@ -5,7 +5,7 @@
 - **Play it:** **https://doodle-with-pip.onrender.com** (no login; grab paper and a thick pen, allow camera and mic. Free hosting: the first load after a quiet spell takes about 50 seconds)
 - **Watch it:** `TODO: 2-minute Loom`
 - **Run your own copy:** `git clone https://github.com/Suvoo/No-Way-Pictionary.git && cd No-Way-Pictionary && make up`, then open http://localhost:8080 ([details](#run-it-yourself))
-- **AI agents:** read [`CLAUDE.md`](CLAUDE.md) first. It covers the read order, commands, the rules that must not break, and where to change things.
+- **AI agents** (Claude Code, Cursor, Codex...): read [`AGENTS.md`](AGENTS.md) first. It covers the read order, commands, the rules that must not break, and where to change things.
 
 ---
 
@@ -21,10 +21,14 @@ You and Pip, an AI on a live video call, take turns drawing. There are 6 rounds 
 
 ## Why
 
-- **Anyone can test it in 45 seconds.** Draw a terrible bicycle and laugh when Pip asks "is that a car?". People play a game; they politely close a mock interview.
+**Games are where new tech proves itself.** Much of computer science has tested its proofs of concept on games, and games have pushed it forward. Games drove graphics and physics simulation. Reinforcement learning grew up on Atari games, then on Go and chess. Robots learned to play table tennis. Online games pushed live streaming, real-time communication and instant feedback. So whenever I want to know how good a technology really is, my first test is a game. Pictionary is a good one for real-time video AI: it needs eyes, a voice and a fast back-and-forth with someone who can draw back.
+
+**And it is a game kids already play.** In libraries around the Bay Area, in Sunnyvale and San Jose, I see lots of children on iPads (the library's or their own). Many of the games they play most involve talking with a character, though an animated one, not a live human. Pictionary comes up a lot, and it is a good game for younger kids: it builds hand-eye coordination, gets them thinking in shapes, and makes them explain what they mean. A live character that watches your drawing, guesses out loud and draws back is a way for kids to practise those skills, learn new words and talk with someone while they play.
+
+**Why it fits Tavus:**
 - **It only works with video.** The camera has to see your paper, and you have to see Pip's canvas. Take the video away and there is no game, so it shows what CVI does that a chatbot can't.
+- **Anyone can test it in 45 seconds.** Draw a terrible bicycle and laugh when Pip asks "is that a car?".
 - **It is new on Tavus.** There is no Pictionary or sketch-guessing build in the Tavus Community Showcase or the official examples (checked Nov 26 2026). Outside Tavus, the closest things are Pictionary Vs. AI and Quick, Draw!, and both are one-sided: you draw, a classifier guesses, and nobody draws back.
-- **It is the FDE loop in miniature:** take a vague brief, build one narrow path, prove it works with an eval, and be clear about the trade-offs.
 
 **Success measure:** a full game finishes in 6 to 7 minutes with a final score, all 6 words and who scored each round. The guess log (in the API and the database) shows every guess, how many tries it took, and whether it was right.
 
@@ -124,30 +128,40 @@ TAVUS CVI
 
 ## Run it yourself
 
-**One command, Docker only.** No Python, Node or database to install.
+There are three ways to try it:
 
-```bash
-git clone https://github.com/Suvoo/No-Way-Pictionary.git && cd No-Way-Pictionary
-make up        # or: docker compose up --build
-```
+| Who | What they do | What they get |
+|---|---|---|
+| **Just wants to play** | Opens https://doodle-with-pip.onrender.com | The full live game with Pip, on the hosted key. Nothing to install |
+| **Runs it locally, no key** | `make up` and nothing else | **Demo mode:** the same game with no video call. Rounds, timers, secret words, referee and scoring all run for real; you type what Pip "says" in your rounds and your guesses in Pip's |
+| **Runs it locally, own key** | Puts `TAVUS_API_KEY=their-key` in `.env`, then `make up` | The full live game on their own account. On first start the server creates Pip on **their** Tavus account, and calls use **their** credits |
 
-Open **http://localhost:8080**. Stop it with `make down` (or Ctrl+C).
+### Run it locally
 
-- **Without a Tavus key, it runs in demo mode:** the whole game, referee and scoring run for real, and you type what Pip "says".
-- **For the live video human:** put your key in `.env` (`make up` created that file from `.env.example`) and run `make up` again:
-  ```bash
-  TAVUS_API_KEY=your-key
-  ```
-  That's all. On startup the server finds Pip on your Tavus account, or **creates it** (PAL, Raven-2, hotwords, turn-taking and both tools), and logs `pip ready: <pal_id>`. When the code changes Pip's prompt or settings, the next start updates it in place. You don't need a PAL id and there's no setup script to run.
-- **Check it is up:** `curl localhost:8080/health` returns `{"ok": true, "mode": "live"}` (or `"demo"`).
+Docker is the only requirement. No Python, Node or database to install.
+
+1. **Clone it and start it:**
+   ```bash
+   git clone https://github.com/Suvoo/No-Way-Pictionary.git && cd No-Way-Pictionary
+   make up        # or: docker compose up --build
+   ```
+2. **Open http://localhost:8080.** Without a key this is demo mode.
+3. **For the live video human**, put your Tavus key in `.env` (`make up` created that file from `.env.example`), then run `make up` again:
+   ```bash
+   TAVUS_API_KEY=your-key
+   ```
+   That's all. On the first start the server **creates Pip** on your Tavus account (PAL, Raven-2, hotwords, turn-taking and both tools) and logs `pip ready: <pal_id>`. Every later start finds that same Pip by name and changes nothing, unless the code changed Pip's prompt or settings; then it updates it in place. There are no duplicates, you don't need a PAL id, and there's no setup script.
+4. **Check it is up:** `curl localhost:8080/health` returns `{"ok": true, "mode": "live"}` (or `"demo"`). Stop it with `make down` (or Ctrl+C).
+
+**Windows:** install Docker Desktop and run `docker compose up --build` (Windows has no `make`). For live video, first run `copy .env.example .env` and add your key.
 
 ### For AI agents
 
 Give an agent the repo and this prompt:
 
-> Read `CLAUDE.md`, then run `make up` and confirm `curl localhost:8080/health` returns ok.
+> Read `AGENTS.md`, then run `make up` and confirm `curl localhost:8080/health` returns ok.
 
-`CLAUDE.md` is the agent's map: what to read first, the one command to run, the rules the tests enforce, where each kind of change goes, and how to debug a live game. After any code change, the agent runs `make check` (eval, tests and frontend build; needs Python 3.9+ and Node 20+).
+`AGENTS.md` is the agent's map (Cursor, Codex, Copilot and others read it automatically; `CLAUDE.md` imports it for Claude Code): what to read first, the one command to run, the rules the tests enforce, where each kind of change goes, and how to debug a live game. After any code change, the agent runs `make check` (eval, tests and frontend build; needs Python 3.9+ and Node 20+).
 
 ### Deploy it (one service)
 
@@ -388,7 +402,8 @@ Checked against `https://docs.tavus.io/openapi.yaml` and the docs pages. If anyt
 <summary><b>Files</b></summary>
 
 ```
-CLAUDE.md           guide for AI agents: read order, commands, invariants, where to change things
+AGENTS.md           guide for AI coding agents: read order, commands, invariants, where to change things
+CLAUDE.md           one line: imports AGENTS.md for Claude Code
 README.md           this file (source of truth)
 Makefile            `make up` to run it; dev, check, last-game, docker for working on it
 Dockerfile          one image: builds the React app, serves it from FastAPI

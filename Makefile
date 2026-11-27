@@ -1,4 +1,4 @@
-# Doodle with Pip. Run it: `make up` (Docker only, http://localhost:8080). Agents: see CLAUDE.md.
+# Doodle with Pip. Run it: `make up` (Docker only, http://localhost:8080). Agents: see AGENTS.md.
 # Everything below `down` is for working on the code (Python 3.9+ and Node 20+).
 PY ?= python3
 VENV = .venv
