@@ -32,7 +32,8 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(asctime)s %(
 log = logging.getLogger("app")
 
 CALLBACK_SECRET = os.getenv("TAVUS_CALLBACK_SECRET", "")
-PUBLIC_URL = os.getenv("PUBLIC_URL", "").rstrip("/")  # e.g. https://doodle-with-pip.onrender.com
+# The deployed https URL, for webhooks. Render sets RENDER_EXTERNAL_URL itself, so there it needs no config.
+PUBLIC_URL = (os.getenv("PUBLIC_URL") or os.getenv("RENDER_EXTERNAL_URL", "")).rstrip("/")
 store = Store(os.getenv("DB_PATH", "data/pictionary.db"))
 tavus = TavusClient(os.getenv("TAVUS_API_KEY", ""), os.getenv("TAVUS_PAL_ID", ""), os.getenv("TAVUS_FACE_ID", ""))
 dispatcher = EffectDispatcher(tavus)
@@ -53,10 +54,31 @@ async def _ticker() -> None:
                 log.exception("tick failed for %s", gid)
 
 
+def setup_pip() -> None:
+    """With a Tavus key, make sure Pip exists on the account and matches the code, then go live.
+    Creates Pip on a fresh account, finds it by name if TAVUS_PAL_ID is unset, and patches it only when
+    the prompt or settings changed. TAVUS_AUTO_SETUP=0 skips this and uses TAVUS_PAL_ID as-is."""
+    if not tavus.api_key:
+        return
+    if os.getenv("TAVUS_AUTO_SETUP", "1") == "0":
+        return
+    from backend import setup_tavus  # imported here: only needed with a key
+    try:
+        pal_id = setup_tavus.ensure_pal(
+            setup_tavus._client(tavus.api_key), tavus.pal_id or None,
+            os.getenv("TAVUS_FACE_ID") or setup_tavus.DEFAULT_FACE_ID, log=lambda m: log.info("pip setup: %s", m))
+    except Exception as e:  # never block the app: fall back to TAVUS_PAL_ID or demo mode
+        log.error("pip setup failed (%s); using TAVUS_PAL_ID as-is", e)
+        return
+    tavus.pal_id, tavus.enabled = pal_id, True
+    log.info("pip ready: %s", pal_id)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    await asyncio.to_thread(setup_pip)
     task = asyncio.create_task(_ticker())
-    log.info("mode: %s", "LIVE (Tavus)" if tavus.enabled else "DEMO (no TAVUS_API_KEY / TAVUS_PAL_ID)")
+    log.info("mode: %s", "LIVE (Tavus)" if tavus.enabled else "DEMO (no TAVUS_API_KEY)")
     yield
     task.cancel()
 

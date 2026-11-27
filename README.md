@@ -1,94 +1,60 @@
 # Doodle with Pip
 
-**Pip guesses your doodles out loud. Then you guess Pip's.** A turn-based Pictionary-style drawing game against a live Tavus video human. In your rounds you draw on real paper and hold it up, and the AI (Pip) watches through your camera with Raven-2 and guesses out loud. In its rounds it sketches on a canvas, one line at a time, and you shout your guess.
+**Pip guesses your doodles out loud. Then you guess Pip's.** A turn-based drawing game against a live Tavus video human.
 
-> **A PAL is a prompt. This is a system.** The PAL is one component: face, voice and guesser. The game state machine, the secret handling, the turn-taking, the referee that scores every guess, the stroke templates and the eval are the application, and none of that lives in the Tavus dashboard.
-
-- **Play it:** **https://doodle-with-pip.onrender.com** (no login, no setup; grab paper and a thick pen, allow camera and mic). Free hosting: if it has been idle, the first load takes about 50 seconds.
+- **Play it:** **https://doodle-with-pip.onrender.com** (no login; grab paper and a thick pen, allow camera and mic. Free hosting: the first load after a quiet spell takes about 50 seconds)
 - **Watch it:** `TODO: 2-minute Loom`
-- **How it works:** [Architecture](#architecture) · **Why this project:** [Why this project](#why-this-project) · **Does it work:** [Eval results and live testing](#eval-results)
-- **Repo:** https://github.com/Suvoo/No-Way-Pictionary
-- **Run it locally in 3 steps:** see [Quick start](#quick-start). It works with **no Tavus key** (demo mode).
-- **Check it works:** `make check` runs the golden-set eval (50 cases), API and unit tests, and the frontend build.
-- **AI agents:** start with [`CLAUDE.md`](CLAUDE.md): read order, commands, the rules that must not break, where to change things.
+- **Run your own copy:** `git clone https://github.com/Suvoo/No-Way-Pictionary.git && cd No-Way-Pictionary && make up`, then open http://localhost:8080 ([details](#run-it-yourself))
+- **AI agents:** read [`CLAUDE.md`](CLAUDE.md) first. It covers the read order, commands, the rules that must not break, and where to change things.
 
 ---
 
-## Why this project
+## What
 
-- **Anyone can test it in 45 seconds.** Draw a terrible bicycle, laugh when it says "is that a car?". A game gets played. A mock interview gets closed.
-- **It only works with video.** The camera has to see your paper, and you have to see its canvas. Take the video away and there is no game.
-- **It is original on Tavus.** No Pictionary or sketch-guessing build in the Tavus Community Showcase or official examples (checked Nov 26 2026). Non-Tavus analogues (Mattel Pictionary Vs. AI, Quick, Draw!) are one-sided: you draw, a classifier guesses, nobody draws back.
-- **It exercises the FDE loop:** take a vague brief, build one narrow path, show it works with an eval, and explain the trade-offs.
+You and Pip, an AI on a live video call, take turns drawing. There are 6 rounds of 45 seconds each, and each guesser gets 3 tries.
 
-**Who it is for:** anyone with a laptop or phone, paper and a pen. **Success measure:** a full game finishes in about 6 to 7 minutes with a final score, all 6 words and who scored each round, plus a guess log (API and database) showing every guess, how many tries it took, and whether it was right.
+- **Your rounds:** you get a secret word that Pip can't see. You draw it on **real paper** and hold it up to the camera. Pip watches through Tavus Raven-2 and guesses out loud: "Two circles... is it a car?"
+- **Pip's rounds:** Pip sketches its secret word on a canvas, one stroke at a time, and you shout your guess.
+- **Scoring:** a right guess within 3 tries scores 1 point for the guesser. A miss scores nobody. Say your word out loud or write it on the paper, and you get a new word; do it twice and Pip gets the point.
 
-## How to play (the 30 second version)
+> **A PAL is a prompt. This is a system.** Pip, the Tavus PAL, is one component: the face, the voice and the eyes. The game is everything around it, and none of that lives in the Tavus dashboard: a state machine, secrets kept on the right side, a referee that scores every guess, turn-taking that never talks over Pip, stroke templates, and a 50-case eval.
 
-1. Open the link, grab paper and a **thick black pen**, press **Play**, allow camera and mic. Pip says hi and asks if you want the rules; ask anything, then say **"let's start"** (or press Start).
-2. **Round 1 (you draw):** you see a secret word the AI cannot see. Draw it (no letters) and hold it up; Pip looks on its own, and **Look now** hurries it. It guesses out loud: right within 3 guesses and it scores a point. Say or write your word and you get a new one; do it twice and Pip gets the point.
-3. **Round 2 (it draws):** a canvas appears. It draws its secret word stroke by stroke. Shout your guess (or type it). Get it within 3 guesses and you score a point.
-4. Alternate for 6 rounds, 45 seconds each. Final scoreboard with every word and who scored each round.
+## Why
 
-Scoring: **guessers only.** Guess right within 3 tries and you get the point; a missed round scores for nobody. So the score is who guessed more, and drawing badly on purpose never pays. (An earlier rule gave the drawer the point on a miss, which rewarded bad drawings.)
+- **Anyone can test it in 45 seconds.** Draw a terrible bicycle and laugh when Pip asks "is that a car?". People play a game; they politely close a mock interview.
+- **It only works with video.** The camera has to see your paper, and you have to see Pip's canvas. Take the video away and there is no game, so it shows what CVI does that a chatbot can't.
+- **It is new on Tavus.** There is no Pictionary or sketch-guessing build in the Tavus Community Showcase or the official examples (checked Nov 26 2026). Outside Tavus, the closest things are Pictionary Vs. AI and Quick, Draw!, and both are one-sided: you draw, a classifier guesses, and nobody draws back.
+- **It is the FDE loop in miniature:** take a vague brief, build one narrow path, prove it works with an eval, and be clear about the trade-offs.
 
----
-
-## Quick start
-
-```bash
-git clone https://github.com/Suvoo/No-Way-Pictionary.git && cd No-Way-Pictionary
-make setup        # venv + pip install + npm install + copies .env.example to .env
-make dev          # backend :8000 + frontend :5173 -> open http://localhost:5173
-```
-
-That runs in **demo mode** (no video): the whole game, referee and scoring run for real, and you type what the AI "says". To play live with the video human:
-
-```bash
-# 1. put TAVUS_API_KEY=... in .env
-make tavus-setup  # creates Pip (the PAL, Raven-2) + its two tools on Tavus, prints TAVUS_PAL_ID
-# 2. put TAVUS_PAL_ID=... in .env, then
-make dev
-```
-
-Requirements: Python 3.9+, Node 20+. No database setup (SQLite file, created on first run).
-
-| Command | What it does |
-|---|---|
-| `make dev` | backend + frontend with hot reload |
-| `make eval` | golden-set eval, prints pass/fail per case |
-| `make test` | API and unit tests (secret handling, idempotency, webhooks, garbage input, not talking over Pip) |
-| `make last-game` | what happened in the latest game: rounds, every guess and why it counted, turn latency |
-| `make stop` | free ports 8000 / 5173 if a dev server was left running |
-| `make check` | eval + tests + frontend build. Run this after any change |
-| `make tavus-setup` | one-time PAL + tools creation (draw tool, Raven vision tool), prints `TAVUS_PAL_ID` (`--dry-run` to see the JSON) |
-| `make tavus-update` | after changing Pip's system prompt, settings or tools: update the same PAL in place |
-| `make docker` | build and run the production image on http://localhost:8080 (same image Render runs) |
-
-## Deploy (one service)
-
-The production image builds the React app and serves it from FastAPI, so there is **one URL, one service, no CORS**. It needs an always-on container (the backend runs round timers), HTTPS (browsers only allow camera and mic on HTTPS) and these env vars:
-
-| Var | Required | What |
-|---|---|---|
-| `TAVUS_API_KEY` | for live video | Tavus API key (server-side only) |
-| `TAVUS_PAL_ID` | for live video | printed by `make tavus-setup` |
-| `PUBLIC_URL` | recommended | the deployed URL, e.g. `https://doodle-with-pip.onrender.com`; enables webhooks |
-| `TAVUS_CALLBACK_SECRET` | with `PUBLIC_URL` | any random string, signs webhooks |
-
-Without the two Tavus vars the deploy still works, in demo mode.
-
-- **Render** (configured, free tier): New > Blueprint > this repo (`render.yaml`), fill the vars. The free tier sleeps after 15 idle minutes (about 50s to wake), so open the link once before sharing it.
-- **Railway** (no config needed, small monthly cost, no sleep): New Project > Deploy from GitHub repo; it builds the `Dockerfile`. Add the vars, then Settings > Networking > Generate Domain, and put that domain in `PUBLIC_URL`.
-- **Fly.io, Cloud Run, any Docker host:** `docker build -t doodle-with-pip .` and run it with the vars and `PORT`. On Cloud Run set min and max instances to 1 (one process owns the timers and the SQLite file).
-
-Check it is up: `curl https://<your-app>/health` returns `{"ok": true, "mode": "live"}`. Then open the link in an incognito window and on a phone. Game history (SQLite in the container) resets on redeploy; games themselves are unaffected.
+**Success measure:** a full game finishes in 6 to 7 minutes with a final score, all 6 words and who scored each round. The guess log (in the API and the database) shows every guess, how many tries it took, and whether it was right.
 
 ---
 
 ## Architecture
 
+### 1. The loop: who owns each step
+
+![How a game runs, in five steps: you hold up your drawing and Raven sees it (Tavus); Pip guesses out loud (Tavus); the browser passes the words on; the backend referee scores it; Pip announces the result (Tavus). Then repeat.](docs/game-loop.jpg)
+
+**Pip performs, the browser carries, the backend decides.** Tavus sends live speech only to the browser, so the browser relays every sentence to the backend. The backend is the only thing that scores, and Pip never grades itself.
+
+### 2. The system: who talks to whom
+
 ![Doodle with Pip: who talks to whom. The browser talks to the backend and to Tavus; Tavus sends live speech only to the browser, which relays it to the backend; the backend controls Pip and stores games in SQLite.](docs/architecture.jpg)
+
+- **Browser** (React): renders whatever the backend says and owns no rules. It joins the Tavus call (a Daily WebRTC room) and relays Pip's live events to `POST /api/games/{id}/events`.
+- **Backend** (FastAPI, one process): owns all game state, timers, secrets and scoring, and stores each game in SQLite. It steers Pip with `send-app-message` (silent context, "answer in your own words", "say this line exactly").
+- **Tavus CVI:** Pip the PAL, made of Raven-2 vision, turn-taking, LLM, voice and face, with two tools: `draw_next_stroke` and the Raven vision tool `written_word_on_paper`. **Pip is defined in code** (`backend/setup_tavus.py`), and the server creates or updates it on your Tavus account at startup.
+- **Secrets:** in your rounds the word goes only to the browser. In Pip's rounds the word goes only to Pip, and the browser gets stroke shapes but never the word.
+
+### 3. One round, from a doodle to a point
+
+![One round as a sequence: the player holds up the paper; Pip says "is it a car?"; the utterance goes to the browser, which posts it to the backend; the referee marks car wrong, 2 guesses left; Pip says "is it a bicycle?"; the backend marks it right, holds the reveal until Pip stops talking, then has Pip say "Boom, it was bicycle." while the browser shows the reveal card.](docs/one-round.jpg)
+
+The backend never talks over Pip. It holds every line until Pip finishes speaking, then has Pip say the reveal word for word, and the screen shows the answer only once Pip says it.
+
+<details>
+<summary><b>Architecture in depth</b>: routes, message types, the state machine, the referee rules, tools, webhooks</summary>
 
 The same system in text, with the real routes and message types:
 
@@ -120,14 +86,14 @@ BACKEND  FastAPI, one process, owns ALL game state
 │  POST /v2/conversations/{id}/end ............... at game over, Home, Play again or Quit
 ▼
 TAVUS CVI
-   PAL "Pip", created once by setup_tavus.py (`make tavus-update` to change it): system prompt,
+   PAL "Pip", defined in setup_tavus.py and synced to Tavus at every server start: system prompt,
      Raven-2 with paper-focused awareness questions, speech hotwords, turn-taking settings,
      draw tool (LLM) + written_word_on_paper (Raven vision tool)
    Conversation = a Daily WebRTC room: Raven-2 sees -> Sparrow-2 turn-taking -> LLM -> TTS -> Phoenix video
    Live app-messages go to the BROWSER only (hence the relay); post-call callbacks -> POST /webhooks/tavus
 ```
 
-**Browser.** One page: landing, then game, then scoreboard. It renders whatever state the backend returns and owns no rules. The canvas is shown **only** in PAL-draw rounds, and the word box only in yours, so paper stays the input and canvas the output. Layout: the live video is the stage (two thirds of the width on desktop) and the round's controls sit in a slim rail; on phones they stack. `CviEmbed.tsx` joins the Daily room with a Daily *call object* and draws the tracks itself: Pip's video fills the stage, the player's camera is a small corner preview for aiming the paper, Pip's lines appear as captions, and there is no stock pre-join screen. It also **relays** Tavus app-messages (`conversation.utterance`, `conversation.tool_call`, `conversation.perception_tool_call` with its camera frames stripped, `started/stopped_speaking`) to the backend, because Tavus delivers those only to the browser (see [Tavus API notes](#tavus-api-notes-verified-nov-26-2026)).
+**Browser.** One page: landing, then game, then scoreboard. It renders whatever state the backend returns and owns no rules. The canvas is shown **only** in PAL-draw rounds, and the word box only in yours, so paper stays the input and canvas the output. Layout: the live video is the stage (two thirds of the width on desktop) and the round's controls sit in a slim rail; on phones they stack. `CviEmbed.tsx` joins the Daily room with a Daily *call object* and draws the tracks itself: Pip's video fills the stage, the player's camera is a small corner preview for aiming the paper, Pip's lines appear as captions, and there is no stock pre-join screen. It also **relays** Tavus app-messages (`conversation.utterance`, `conversation.tool_call`, `conversation.perception_tool_call` with its camera frames stripped, `started/stopped_speaking`) to the backend, because Tavus delivers those only to the browser (see "Tavus API notes" under Reference).
 
 **Backend state machine (`game.py`).** `ROUND_START -> USER_DRAW | PAL_DRAW -> REVEAL -> ... -> GAME_OVER`. Rules enforced in code, not in the prompt: 45s timer (server clock, 3s grace for speech lag), 3 guesses, no duplicate words per game, a repeated guess does not burn a try, auto-stroke every 7s if the PAL stalls (narrated out loud only when nobody is talking), a single nudge after 15s of player silence in Pip's rounds, and in the player's rounds a "look at the camera now" prompt whenever the PAL has been quiet for about 9s (up to 3 a round). If the player says their own word out loud, they get a new word and a fresh round; a second time, Pip gets the point. A user utterance that Tavus re-sends as it grows ("No, I think-" then "No, I think- drummers") is scored once, on its new words only. It is pure: it takes `now` and returns *effects* (messages for the PAL) instead of calling Tavus, which is why the eval can replay rounds without a video call.
 
@@ -152,52 +118,94 @@ TAVUS CVI
 
 **Storage (`store.py`).** SQLite, one row per game as JSON, saved after every change inside one lock, so a backend restart resumes the game.
 
-## API
-
-All `/api/games/{id}/...` routes need the `X-Player-Token` header returned by `POST /api/games`. Every mutating route returns the same game view as `GET`.
-
-| Method & path | Purpose |
-|---|---|
-| `GET /health` | `{"ok": true, "mode": "live" \| "demo"}` |
-| `GET /api/config` | rounds, seconds, guesses, PAL name, mode |
-| `POST /api/games` | `{"previous_game_id"?}` -> creates a game + Tavus conversation |
-| `GET /api/games/{id}` | game view (state, round, score, strokes, guess log) |
-| `POST /api/games/{id}/start-round` | start round 1, or the next round from REVEAL |
-| `POST /api/games/{id}/look` | your round: tell the PAL the paper is up, guess now |
-| `POST /api/games/{id}/events` | browser relays a raw Tavus app-message (utterance, tool_call, perception_tool_call, started/stopped_speaking). Idempotent |
-| `POST /api/games/{id}/guesses` | typed guess `{"text": "bike"}`. Demo mode: `{"text": "Is it a car?", "guesser": "pal"}` simulates the PAL |
-| `POST /api/games/{id}/next-stroke` | PAL round: "draw more" button |
-| `POST /api/games/{id}/hint` | PAL round: hint, after 2 wrong guesses or 20s |
-| `POST /api/games/{id}/complete` | quit / finish: closes the Tavus conversation, returns scoreboard |
-| `GET /api/games/{id}/scoreboard` | final score, all words, full guess log |
-| `POST /webhooks/tavus` | Tavus callbacks, HMAC verified |
-
-Example:
-
-```bash
-curl -s -X POST localhost:8000/api/games -H 'content-type: application/json' -d '{}'
-# {"game_id":"Xk2..","player_token":"9fQ..","conversation_url":"https://tavus.daily.co/c123","mode":"live","rounds":6,"round_duration_sec":45,"pal_name":"Pip", ...}
-
-curl -s -X POST localhost:8000/api/games/Xk2../start-round -H 'X-Player-Token: 9fQ..'
-# {"state":"USER_DRAW","round":{"index":1,"drawer":"user","your_word":"bicycle","seconds_left":45,"guesses_left":3,"strokes":[],...},"score":{"user":0,"pal":0},...}
-
-# a relayed utterance, exactly as Tavus sends it to the browser: Pip guesses out loud, the referee scores it
-curl -s -X POST localhost:8000/api/games/Xk2../events -H 'X-Player-Token: 9fQ..' -H 'content-type: application/json' \
-  -d '{"event_type":"conversation.utterance","inference_id":"i1","properties":{"role":"pal","speech":"Two circles... is it a car?"}}'
-# {"handled":true}   (GET /api/games/Xk2.. now shows guesses_left 2 and "car" in guess_log)
-```
+</details>
 
 ---
 
-## How do I know it is not making things up?
+## Run it yourself
+
+**One command, Docker only.** No Python, Node or database to install.
+
+```bash
+git clone https://github.com/Suvoo/No-Way-Pictionary.git && cd No-Way-Pictionary
+make up        # or: docker compose up --build
+```
+
+Open **http://localhost:8080**. Stop it with `make down` (or Ctrl+C).
+
+- **Without a Tavus key, it runs in demo mode:** the whole game, referee and scoring run for real, and you type what Pip "says".
+- **For the live video human:** put your key in `.env` (`make up` created that file from `.env.example`) and run `make up` again:
+  ```bash
+  TAVUS_API_KEY=your-key
+  ```
+  That's all. On startup the server finds Pip on your Tavus account, or **creates it** (PAL, Raven-2, hotwords, turn-taking and both tools), and logs `pip ready: <pal_id>`. When the code changes Pip's prompt or settings, the next start updates it in place. You don't need a PAL id and there's no setup script to run.
+- **Check it is up:** `curl localhost:8080/health` returns `{"ok": true, "mode": "live"}` (or `"demo"`).
+
+### For AI agents
+
+Give an agent the repo and this prompt:
+
+> Read `CLAUDE.md`, then run `make up` and confirm `curl localhost:8080/health` returns ok.
+
+`CLAUDE.md` is the agent's map: what to read first, the one command to run, the rules the tests enforce, where each kind of change goes, and how to debug a live game. After any code change, the agent runs `make check` (eval, tests and frontend build; needs Python 3.9+ and Node 20+).
+
+### Deploy it (one service)
+
+It's the same Docker image everywhere. The image builds the React app and FastAPI serves it, so you get one URL, one service and no CORS. It needs an always-on container (the backend runs the round timers) and HTTPS (browsers only allow camera and mic on HTTPS).
+
+- **Render** (free tier, configured): New > Blueprint > this repo (`render.yaml`). Set **`TAVUS_API_KEY`**; everything else is optional or automatic. The free tier sleeps after 15 idle minutes, so open the link once before sharing it.
+- **Railway, Fly.io, Cloud Run, any Docker host:** build the `Dockerfile` and set `TAVUS_API_KEY` and `PORT`. Set `PUBLIC_URL` to your https URL and `TAVUS_CALLBACK_SECRET` to any random string to get signed post-call webhooks. On Cloud Run, run exactly one instance (one process owns the timers and the SQLite file).
+- **Verify:** `curl https://<your-app>/health` returns `{"ok": true, "mode": "live"}`. Then play once in an incognito window and once on a phone.
+
+| Env var | Needed | What |
+|---|---|---|
+| `TAVUS_API_KEY` | for live video | Tavus API key. Stays on the server and never reaches the browser |
+| `TAVUS_PAL_ID` | no | pin a specific PAL; empty = find or create Pip by name |
+| `PUBLIC_URL` + `TAVUS_CALLBACK_SECRET` | no | signed webhooks (post-call transcript). On Render the URL is automatic and the blueprint generates the secret |
+| `TAVUS_FACE_ID` | no | a stock face from the Tavus Face Library |
+
+<details>
+<summary><b>Working on the code</b>: dev server with hot reload, all commands</summary>
+
+Needs Python 3.9+ and Node 20+.
+
+```bash
+make setup     # once: venv + pip + npm, copies .env.example to .env
+make dev       # backend :8000 + frontend :5173 with hot reload -> http://localhost:5173
+make check     # eval (50 cases) + API/unit tests + frontend build. Run after every change
+```
+
+| Command | What it does |
+|---|---|
+| `make up` / `make down` | run / stop the whole app in Docker on :8080 (the way to just use it) |
+| `make dev` | backend + frontend with hot reload |
+| `make eval` | golden-set eval, prints pass/fail per case |
+| `make test` | API and unit tests (secrets, idempotency, webhooks, garbage input, not talking over Pip, Pip auto-setup) |
+| `make check` | eval + tests + frontend build |
+| `make last-game` | what happened in the latest game: rounds, every guess and why it counted, turn latency |
+| `make stop` | free ports 8000 / 5173 if a dev server was left running |
+| `make tavus-setup` | optional: the same Pip sync the server runs at startup, by hand (`--dry-run` prints the JSON) |
+| `make docker` | the production image without compose, on http://localhost:8080 |
+
+</details>
+
+---
+
+## Does it work?
+
+- **Eval: 50/50 pass.** These are scripted cases, many of them replays of real live games, run against the real engine with a fake clock: scoring, timers, synonyms, mishearings, secrets, giving the word away, exact reveal lines and the idle goodbye. `make eval`.
+- **Tests:** API, game timing, webhooks, secrets, and Pip auto-setup against a fake Tavus. `make test`.
+- **Live:** nine games (29 rounds) against the real Pip. Secrets held every time, and the median turn latency was 0.88s. Every bug those games found is now an eval case labelled "Live replay".
+- **Perception spike (before building):** Raven-2, 5 easy words, a thick marker, good light: 5/5 guessed within 3 tries. That's the only perception accuracy claimed.
+
+<details>
+<summary><b>Full eval results, live testing, and how you know Pip isn't making things up</b></summary>
 
 **You don't have to trust the PAL.** The backend picks the words, keeps each secret on the right side, checks every spoken guess against the secret, and logs every guess with a timestamp, its source (tool, transcript, speech, typed) and why it did or did not count. The PAL talks; the backend referees.
 
 1. **Measured spike (before building, Nov 26 2026):** a Raven-2 PAL, 5 easy words (star, house, fish, bicycle, cat), thick black marker, held steady for 3s, good room light, real phone browser: **5/5 correct within 3 guesses.** That is the only perception result claimed. It is 5 easy words, not all 345 categories.
 2. **Golden-set eval (`make eval`):** 50 scripted cases (including replays of real live-game transcripts) replayed against the real engine with a fake clock. They prove the game logic: scoring, timers, synonyms, repeats, secret handling, giving the word away (said or written), the honesty fallback, exact reveal lines, and that the PAL cannot guess in its own round.
 3. **Live audit trail:** every guess is stored with its raw text, source and why it did or did not count, in the database and in `GET /api/games/{id}/scoreboard` (`guess_log`). Players see only the words and who scored; anyone checking the game can re-score it by hand from the log.
-
-### Eval results
 
 ```
 PASS  # 1  Easy word, clear drawing: PAL guesses star first try
@@ -258,15 +266,72 @@ PASS  #50  A long round is never cut by the idle goodbye (only waiting states co
 
 **What the eval does not prove:** that Raven reads every drawing, or that the PAL always follows its prompt (phrases guesses as questions, waits its turn, says "hold it closer" instead of guessing), or that Raven's vision tool spots every written word. Cases 9 and 10 check the *backend* side of those behaviours (the nudge fires, an "I can't see" line is not counted, the prompt contains the rule). Whether the PAL follows the rule live is checked by playing, and the guess log records what it did.
 
+</details>
+
 ---
 
-## Will build / will NOT build (v1)
+## Reference
+
+<details>
+<summary><b>How to play, in detail</b></summary>
+
+1. Open the link, grab paper and a **thick black pen**, press **Play**, allow camera and mic. Pip says hi and asks if you want the rules; ask anything, then say **"let's start"** (or press Start).
+2. **Round 1 (you draw):** you see a secret word the AI cannot see. Draw it (no letters) and hold it up; Pip looks on its own, and **Look now** hurries it. It guesses out loud: right within 3 guesses and it scores a point. Say or write your word and you get a new one; do it twice and Pip gets the point.
+3. **Round 2 (it draws):** a canvas appears. It draws its secret word stroke by stroke. Shout your guess (or type it). Get it within 3 guesses and you score a point.
+4. Alternate for 6 rounds, 45 seconds each. Final scoreboard with every word and who scored each round.
+
+Scoring: **guessers only.** Guess right within 3 tries and you get the point; a missed round scores for nobody. So the score is who guessed more, and drawing badly on purpose never pays. (An earlier rule gave the drawer the point on a miss, which rewarded bad drawings.)
+
+</details>
+
+<details>
+<summary><b>API</b></summary>
+
+All `/api/games/{id}/...` routes need the `X-Player-Token` header returned by `POST /api/games`. Every mutating route returns the same game view as `GET`.
+
+| Method & path | Purpose |
+|---|---|
+| `GET /health` | `{"ok": true, "mode": "live" \| "demo"}` |
+| `GET /api/config` | rounds, seconds, guesses, PAL name, mode |
+| `POST /api/games` | `{"previous_game_id"?}` -> creates a game + Tavus conversation |
+| `GET /api/games/{id}` | game view (state, round, score, strokes, guess log) |
+| `POST /api/games/{id}/start-round` | start round 1, or the next round from REVEAL |
+| `POST /api/games/{id}/look` | your round: tell the PAL the paper is up, guess now |
+| `POST /api/games/{id}/events` | browser relays a raw Tavus app-message (utterance, tool_call, perception_tool_call, started/stopped_speaking). Idempotent |
+| `POST /api/games/{id}/guesses` | typed guess `{"text": "bike"}`. Demo mode: `{"text": "Is it a car?", "guesser": "pal"}` simulates the PAL |
+| `POST /api/games/{id}/next-stroke` | PAL round: "draw more" button |
+| `POST /api/games/{id}/hint` | PAL round: hint, after 2 wrong guesses or 20s |
+| `POST /api/games/{id}/complete` | quit / finish: closes the Tavus conversation, returns scoreboard |
+| `GET /api/games/{id}/scoreboard` | final score, all words, full guess log |
+| `POST /webhooks/tavus` | Tavus callbacks, HMAC verified |
+
+Example:
+
+```bash
+curl -s -X POST localhost:8080/api/games -H 'content-type: application/json' -d '{}'
+# {"game_id":"Xk2..","player_token":"9fQ..","conversation_url":"https://tavus.daily.co/c123","mode":"live","rounds":6,"round_duration_sec":45,"pal_name":"Pip", ...}
+
+curl -s -X POST localhost:8080/api/games/Xk2../start-round -H 'X-Player-Token: 9fQ..'
+# {"state":"USER_DRAW","round":{"index":1,"drawer":"user","your_word":"bicycle","seconds_left":45,"guesses_left":3,"strokes":[],...},"score":{"user":0,"pal":0},...}
+
+# a relayed utterance, exactly as Tavus sends it to the browser: Pip guesses out loud, the referee scores it
+curl -s -X POST localhost:8080/api/games/Xk2../events -H 'X-Player-Token: 9fQ..' -H 'content-type: application/json' \
+  -d '{"event_type":"conversation.utterance","inference_id":"i1","properties":{"role":"pal","speech":"Two circles... is it a car?"}}'
+# {"handled":true}   (GET /api/games/Xk2.. now shows guesses_left 2 and "car" in guess_log)
+```
+
+</details>
+
+<details>
+<summary><b>Trade-offs, what was and wasn't built, known limitations</b></summary>
+
+### Will build / will NOT build (v1)
 
 **Built:** landing + game + scoreboard on one site · backend state machine, 6 alternating rounds · 28-word bank from Quick Draw · paper + camera + Raven-2 rounds · canvas + stroke template rounds · referee scoring + guess log · a PAL draw tool + a Raven vision tool (written word on the paper) · exact reveal lines · voice start · webhooks with HMAC · golden-set eval + API tests · demo mode with no key · one-service deploy.
 
 **Not built, on purpose:** a second game mode, multiplayer, accounts, leaderboards · all 345 categories · image generation (sketch-like only) · a trained sketch classifier · auth, billing, payments · any accuracy claim beyond the spike.
 
-## Trade-offs
+### Trade-offs
 
 1. **6 rounds × 45s × 28 easy words vs all 345 categories.** Chose depth and playability. Breadth would break guessing: Raven is a general perception model, not a sketch classifier.
 2. **Backend referee vs letting the PAL score.** Chose the backend: reproducible, testable, cheat-proof. Cost: the backend has to parse speech (rules above, each with an eval case), with a typed box as a fallback.
@@ -274,8 +339,9 @@ PASS  #50  A long round is never cut by the idle goodbye (only waiting states co
 4. **Follow the Tavus pattern: the browser relays live events, the backend referees.** Tavus delivers live speech, tool calls and speaking events only to the browser (over the Daily data channel); only webhooks, post-call actions, API-delivered tools and a custom LLM reach a server directly. Tavus's own apps work the same way: `tavus-interviewer` and `tavus-intake` handle the live transcript, guardrails and objectives in the browser and take their trusted result server-side after the call, and the `cvi-tool-calling` example even runs its tools in the browser. We go one step further: the browser only relays, and every decision is made on the server. Rejected: running our own LLM endpoint (Tavus's custom-LLM option) so the server sees every turn first-hand; it would remove browser trust but adds our own model to host and pay for, an extra hop of latency, and a rewrite of how Pip talks. Cost: see limitations.
 5. **One service vs Vercel + Railway.** Chose one Docker service: one URL, no CORS, one thing to deploy. Split deploy still works.
 6. **Live link + repo vs a recorded Loom only.** Chose both, with the live link primary (the team asked for a hosted link they can test), and a short Loom as backup.
+7. **Pip defined in code vs set up by hand.** The server makes the PAL on your account match the code every time it starts, so a fresh clone with only an API key gets the right Pip, and prompt changes ship with a deploy. Cost: a few seconds of Tavus API calls at startup (no writes when nothing changed). Set `TAVUS_AUTO_SETUP=0` to turn it off.
 
-## Known limitations
+### Known limitations
 
 - **Relayed events are trusted (the Tavus pattern's trust boundary).** The backend believes what the player's own browser relays, so someone using the browser's developer tools could send fake events into **their own** game. They cannot touch other games (each has its own token), and they cannot fake a win in Pip's rounds because the browser never receives Pip's word. The realistic misuse is faking three wrong guesses from Pip in their own rounds so Pip does not score. Fixes, if it ever matters: compare the scored guesses with Tavus's post-call transcript (already received by the webhook) and flag mismatches, or have the server hear the call itself (a server-side Daily participant, or Tavus's custom-LLM option).
 - **PAL turn-taking is prompt-level.** The PAL may talk over you or ask an unprompted question; that is a known CVI conversational limit. The prompt asks it to wait, and the referee ignores anything that is not a guess.
@@ -285,19 +351,26 @@ PASS  #50  A long round is never cut by the idle goodbye (only waiting states co
 - **One game per browser tab.** Two tabs means two separate games and two calls.
 - **PAL guesses are read from its speech.** The prompt has it phrase guesses as "is it a ___?", and the referee extracts them with speech patterns. A guess phrased outside those patterns is missed, and the round ends on the timer instead.
 
-## Edge cases
+</details>
+
+<details>
+<summary><b>Edge cases</b></summary>
 
 Handled in v1: synonyms and plurals · repeated guesses · the same guess heard twice · late guesses (3s grace, then rejected) · speech-to-text near misses ("slow man" for snowman: not counted, the PAL asks again; never for 3-letter words) · starting by voice ("let's start", "ready", "next round"; "not ready" and "wait" win) · a growing or cut-off utterance (scored once, fragments ignored) · a PAL that waits instead of looking (prompted after ~9s of quiet) · timer expiry (nobody scores) · duplicate words in a game · Play Again avoiding the last game's words · the player saying their own word out loud (first time: a new word, a fresh 45s and Pip's guesses reset, with a warning on screen; second time in the round: Pip gets the point) · the player writing their word on the paper (Raven's `written_word_on_paper` vision tool reads it; if it is the secret word, same as saying it; other writing is ignored) · the PAL saying its own word (flagged) · the PAL guessing in its own round (refused) · "can't see, hold it closer" (logged, not a guess) · a silent player (one nudge + auto strokes) · a PAL that stops drawing (auto stroke every 7s) · duplicate webhooks and relayed events (idempotent) · garbage or malformed events (ignored, never crash) · a dropped call (Reconnect, same game) · a backend restart (state persisted after every change) · the conversation left open (closed at game end, on Home or Play again, plus a 20 min `max_call_duration` cap) · phones and tablets: a 🔄 button on the camera preview switches front and back cameras mid-call (shown only when the device has more than one camera; the back camera lets you lay the paper on a table) · off-topic chat (Pip answers in one sentence and steers back; if no round starts for 3 minutes, before round 1 or between rounds, Pip says a fixed goodbye and the backend ends the call, so a public link can't become an open-ended chat on your Tavus minutes).
 
 Noted, not built in v1: holding up a phone image or print · a second person shouting guesses (no speaker ID) · lined or grid paper, a mirrored front camera, glare, shaky hands · rude drawings (prompt-level only) · rotating the phone mid-round · running out of Tavus minutes mid-game (the create call fails cleanly with a message, but there is no warning mid-game) · a slow connection delaying Raven's view.
 
-## What I would do with two more days
+</details>
+
+<details>
+<summary><b>What I would do with two more days</b></summary>
 
 Check every scored guess against Tavus's post-call transcript and flag mismatches (closing most of the relay trust gap cheaply) · a small sketch classifier trained on Quick Draw as a second opinion next to Raven · a bigger word bank with difficulty tiers · calibration runs with real players (does 45s feel right? do people hold the paper steady?) · re-run the golden set plus a recorded live session after every prompt change, to catch drift · a post-call perception report on what Raven saw each round.
 
----
+</details>
 
-## Tavus API notes (verified Nov 26 2026)
+<details>
+<summary><b>Tavus API notes (verified Nov 26 2026)</b></summary>
 
 Checked against `https://docs.tavus.io/openapi.yaml` and the docs pages. If anything here disagrees with the live spec, the live spec wins.
 
@@ -309,18 +382,22 @@ Checked against `https://docs.tavus.io/openapi.yaml` and the docs pages. If anyt
 - **Tools** are created with `POST /v2/tools` and attached with `POST /v2/pals/{id}/tools` (inline `layers.llm.tools` is legacy). Delivery `app_message` (default) goes to the browser; `delivery.api` makes Tavus call an HTTPS URL directly.
 - **The conversation response** has `conversation_url` (for the Daily SDK; used here) and `room_url` (the Tavus-hosted page). End with `POST /v2/conversations/{id}/end`.
 
-## Files
+</details>
+
+<details>
+<summary><b>Files</b></summary>
 
 ```
 CLAUDE.md           guide for AI agents: read order, commands, invariants, where to change things
 README.md           this file (source of truth)
-Makefile            every command: setup, dev, check, last-game, tavus-setup/update, docker, stop
+Makefile            `make up` to run it; dev, check, last-game, docker for working on it
 Dockerfile          one image: builds the React app, serves it from FastAPI
+docker-compose.yml  what `make up` runs: the image on :8080, .env, ./data for SQLite
 render.yaml         Render blueprint (one web service, health check /health)
-docs/architecture.jpg  the system diagram shown in Architecture
 .env.example        every env var, with comments
+docs/               game-loop.jpg, architecture.jpg, one-round.jpg (the diagrams above)
 backend/
-  app.py            FastAPI routes (+ serves frontend/dist in production)
+  app.py            FastAPI routes (+ serves frontend/dist); sets Pip up at startup
   game.py           state machine, timers, rules, scoring, not-talking-over-Pip (start here)
   scorer.py         speech -> scored guess: matching, synonyms, near misses, voice commands
   prompts.py        system prompt + per-round context: everything the PAL is told
@@ -330,12 +407,15 @@ backend/
   store.py          SQLite persistence
   tavus.py          Tavus API client + ordered effect dispatcher, demo mode
   webhooks.py       HMAC verification + callback handling
-  setup_tavus.py    create the PAL once; --update applies prompt and settings changes in place
+  setup_tavus.py    Pip defined in code: find or create the PAL + tools, sync them (runs at startup)
   inspect_game.py   `make last-game`: one game's rounds, guesses and latency from the DB
   evals/            golden_set.json + run_evals.py (50 cases, many replaying live games)
-  tests/            test_api.py (HTTP, secrets, webhooks), test_game.py (timing, holds, swaps)
+  tests/            test_api.py (HTTP, secrets, webhooks), test_game.py (timing, holds, swaps),
+                    test_setup.py (Pip auto-setup against a fake Tavus)
 frontend/src/
   App.tsx  Landing.tsx  Game.tsx  CviEmbed.tsx  Canvas.tsx  Scoreboard.tsx  api.ts
 ```
+
+</details>
 
 Word bank from the [Google Quick, Draw! dataset](https://github.com/googlecreativelab/quickdraw-dataset) (CC BY 4.0). heart is a hand-added word; boat and balloon map to Quick Draw's "sailboat" and "hot air balloon".

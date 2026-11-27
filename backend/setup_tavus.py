@@ -1,23 +1,20 @@
-"""Tavus setup for Pip: create it once, then update it in place after prompt, settings or tool changes.
+"""Pip on Tavus, defined in code. The server runs ensure_pal() on every startup (app.py), so nobody has
+to create or update the PAL by hand: set TAVUS_API_KEY and start the app.
 
-    python -m backend.setup_tavus              # create the tool + PAL, prints TAVUS_PAL_ID
-    python -m backend.setup_tavus --update     # update the PAL in TAVUS_PAL_ID in place (same id)
+    python -m backend.setup_tavus              # do the same by hand: find or create Pip, sync it to the code
+    python -m backend.setup_tavus --update     # same thing (kept for old instructions)
     python -m backend.setup_tavus --dry-run    # print the JSON it would send, no API calls
 
-Needs TAVUS_API_KEY in .env. Optional TAVUS_FACE_ID (a stock face from the Face Library;
-defaults to the stock face used in the Tavus docs).
-
-What lives on the PAL (changes here need --update): the system prompt, Raven-2 perception,
-speech-to-text hotwords, turn-taking settings and the attached tool. What does NOT (changes take
-effect on the next game, no update needed): the greeting and every round's context, which the
-backend sends per conversation (see prompts.py).
+What lives on the PAL: the system prompt, Raven-2 perception, speech-to-text hotwords, turn-taking
+settings and the tools. What does NOT (sent per conversation by the backend): the greeting and every
+round's context (prompts.py).
 """
 from __future__ import annotations
 
 import json
 import os
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import httpx
 from dotenv import load_dotenv
@@ -60,9 +57,12 @@ CONVERSATIONAL_FLOW: Dict[str, Any] = {
 }
 
 
+PAL_FULL_NAME = f"{PAL_NAME} - Doodle with Pip"  # how ensure_pal finds Pip on an account without TAVUS_PAL_ID
+
+
 def pal_body(face_id: str) -> Dict[str, Any]:
     return {
-        "pal_name": f"{PAL_NAME} - Doodle with Pip",
+        "pal_name": PAL_FULL_NAME,
         "system_prompt": SYSTEM_PROMPT,
         "default_face_id": face_id,
         "layers": {"perception": PERCEPTION, "stt": STT, "conversational_flow": CONVERSATIONAL_FLOW},
@@ -91,61 +91,117 @@ def _tool_bodies() -> List[Dict[str, Any]]:
     return bodies
 
 
-def _ensure_tools(h: Dict[str, str]) -> List[str]:
+class SetupError(Exception):
+    pass
+
+
+def _client(api_key: str) -> httpx.Client:
+    return httpx.Client(base_url=BASE, headers={"x-api-key": api_key}, timeout=30)
+
+
+def _ensure_tools(c: httpx.Client, log=print) -> List[str]:
+    """Create each tool, or reuse the one with that name (tool names are unique per account)."""
     ids: List[str] = []
     for body in _tool_bodies():
-        r = httpx.post(f"{BASE}/v2/tools", json=body, headers=h, timeout=30)
+        r = c.post("/v2/tools", json=body)
         if r.status_code == 409:  # already exists: reuse it
-            found = httpx.get(f"{BASE}/v2/tools", params={"name_or_uuid": body["name"]}, headers=h, timeout=30).json()
+            found = c.get("/v2/tools", params={"name_or_uuid": body["name"]}).json()
             match = [t for t in found.get("data", []) if t.get("name") == body["name"]]
             if not match:
-                raise SystemExit(f"tool {body['name']} exists but could not be found: {found}")
+                raise SetupError(f"tool {body['name']} exists but could not be found")
             ids.append(match[0]["tool_id"])
-            print(f"reusing tool {body['name']}: {ids[-1]}")
             continue
         if r.status_code != 200:
-            raise SystemExit(f"create tool {body['name']} failed: {r.status_code} {r.text}")
+            raise SetupError(f"create tool {body['name']} failed: {r.status_code} {r.text[:200]}")
         ids.append(r.json()["tool_id"])
-        print(f"created tool {body['name']}: {ids[-1]}")
+        log(f"created tool {body['name']}: {ids[-1]}")
     return ids
 
 
-def create(h: Dict[str, str], face_id: str) -> int:
-    tool_ids = _ensure_tools(h)
-    r = httpx.post(f"{BASE}/v2/pals", json=pal_body(face_id), headers=h, timeout=30)
-    if r.status_code != 200:
-        print(f"create PAL failed: {r.status_code} {r.text}", file=sys.stderr)
-        return 1
-    pal_id = r.json().get("pal_id")
-    print(f"created PAL: {pal_id}")
-    r = httpx.post(f"{BASE}/v2/pals/{pal_id}/tools", json={"tool_ids": tool_ids}, headers=h, timeout=30)
-    if r.status_code != 200:
-        print(f"attach tools failed: {r.status_code} {r.text}", file=sys.stderr)
-        return 1
-    print("attached tools")
-    print(f"\nAdd this to .env:\nTAVUS_PAL_ID={pal_id}")
-    return 0
+def _find_pal_by_name(c: httpx.Client, name: str) -> Optional[str]:
+    for page in range(1, 21):
+        r = c.get("/v2/pals", params={"pal_type": "user", "limit": 100, "page": page})
+        if r.status_code != 200:
+            return None
+        data = r.json().get("data", [])
+        for p in data:
+            if p.get("pal_name") == name:
+                return p.get("pal_id")
+        if len(data) < 100:
+            return None
+    return None
 
 
-def update(h: Dict[str, str], pal_id: str) -> int:
-    r = httpx.patch(f"{BASE}/v2/pals/{pal_id}", json=pal_patch(), headers=h, timeout=30)
-    if r.status_code not in (200, 204, 304):
-        print(f"patch PAL failed: {r.status_code} {r.text}", file=sys.stderr)
-        return 1
-    print(f"updated PAL {pal_id}: system prompt, perception, speech-to-text hotwords, turn-taking")
+def _in_sync(pal: Dict[str, Any]) -> bool:
+    """Does the PAL on Tavus already match the code? Then nothing needs patching."""
+    layers = pal.get("layers") or {}
+    stt, flow, perc = layers.get("stt") or {}, layers.get("conversational_flow") or {}, layers.get("perception") or {}
+    return (
+        pal.get("system_prompt") == SYSTEM_PROMPT
+        and stt.get("hotwords") == STT["hotwords"]
+        and all(flow.get(k) == v for k, v in CONVERSATIONAL_FLOW.items())
+        and perc.get("perception_model") == PERCEPTION["perception_model"]
+        and perc.get("visual_awareness_queries") == PERCEPTION["visual_awareness_queries"]
+    )
 
-    attached = httpx.get(f"{BASE}/v2/pals/{pal_id}/tools", headers=h, timeout=30).json().get("data", [])
+
+def _sync_tools(c: httpx.Client, pal_id: str, log=print) -> None:
+    attached = c.get(f"/v2/pals/{pal_id}/tools").json().get("data", [])
+    names = {t.get("name") for t in attached}
     for t in attached:
         if t.get("name") in RETIRED_TOOLS:
-            d = httpx.delete(f"{BASE}/v2/pals/{pal_id}/tools/{t['tool_id']}", headers=h, timeout=30)
-            print(f"detached retired tool {t['name']}: {d.status_code}")
-    wanted = _ensure_tools(h)
-    r = httpx.post(f"{BASE}/v2/pals/{pal_id}/tools", json={"tool_ids": wanted}, headers=h, timeout=30)
-    print(f"tools attached: {[t.get('name') for t in r.json().get('data', [])] if r.status_code == 200 else r.text}")
-    return 0
+            c.delete(f"/v2/pals/{pal_id}/tools/{t['tool_id']}")
+            log(f"detached retired tool {t['name']}")
+    if all(t["name"] in names for t in TOOL_SPECS):
+        return
+    r = c.post(f"/v2/pals/{pal_id}/tools", json={"tool_ids": _ensure_tools(c, log)})
+    if r.status_code != 200:
+        raise SetupError(f"attach tools failed: {r.status_code} {r.text[:200]}")
+    log("attached tools")
+
+
+def ensure_pal(c: httpx.Client, pal_id: Optional[str], face_id: str, log=print) -> str:
+    """Make Pip exist on Tavus and match this code; return its id. Idempotent, safe on every boot.
+
+    1. Use TAVUS_PAL_ID if it exists on the account; else find the PAL named PAL_FULL_NAME; else create it.
+    2. If its prompt or settings differ from the code, patch it in place (same id).
+    3. Make sure its tools are attached (and retired tools detached).
+    """
+    pal: Optional[Dict[str, Any]] = None
+    if pal_id:
+        r = c.get(f"/v2/pals/{pal_id}")
+        if r.status_code == 200:
+            pal = r.json()
+        else:
+            log(f"TAVUS_PAL_ID {pal_id} not found on this account ({r.status_code}); looking for Pip by name")
+            pal_id = None
+    if not pal_id:
+        pal_id = _find_pal_by_name(c, PAL_FULL_NAME)
+        if pal_id:
+            log(f"found existing Pip: {pal_id}")
+            pal = c.get(f"/v2/pals/{pal_id}").json()
+    if not pal_id:
+        tool_ids = _ensure_tools(c, log)
+        r = c.post("/v2/pals", json=pal_body(face_id))
+        if r.status_code != 200:
+            raise SetupError(f"create PAL failed: {r.status_code} {r.text[:200]}")
+        pal_id = r.json()["pal_id"]
+        log(f"created Pip: {pal_id}")
+        r = c.post(f"/v2/pals/{pal_id}/tools", json={"tool_ids": tool_ids})
+        if r.status_code != 200:
+            raise SetupError(f"attach tools failed: {r.status_code} {r.text[:200]}")
+        return pal_id
+    if pal is not None and not _in_sync(pal):
+        r = c.patch(f"/v2/pals/{pal_id}", json=pal_patch())
+        if r.status_code not in (200, 204, 304):
+            raise SetupError(f"update PAL failed: {r.status_code} {r.text[:200]}")
+        log(f"updated Pip {pal_id} to match the code (prompt, perception, hotwords, turn-taking)")
+    _sync_tools(c, pal_id, log)
+    return pal_id
 
 
 def main(argv: List[str]) -> int:
+    """Manual use; the server already does this on startup (app.py). Kept for scripts and debugging."""
     load_dotenv()
     face_id = os.getenv("TAVUS_FACE_ID") or DEFAULT_FACE_ID
     if "--dry-run" in argv:
@@ -155,14 +211,13 @@ def main(argv: List[str]) -> int:
     if not key:
         print("Set TAVUS_API_KEY in .env first.", file=sys.stderr)
         return 1
-    h = {"x-api-key": key}
-    if "--update" in argv:
-        pal_id = os.getenv("TAVUS_PAL_ID")
-        if not pal_id:
-            print("Set TAVUS_PAL_ID in .env first (or run without --update to create a PAL).", file=sys.stderr)
-            return 1
-        return update(h, pal_id)
-    return create(h, face_id)
+    try:
+        pal_id = ensure_pal(_client(key), os.getenv("TAVUS_PAL_ID"), face_id)
+    except SetupError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    print(f"Pip is ready: {pal_id}  (optional: TAVUS_PAL_ID={pal_id} in .env)")
+    return 0
 
 
 if __name__ == "__main__":

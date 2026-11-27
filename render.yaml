@@ -1,4 +1,5 @@
-# Render Blueprint: New > Blueprint > pick this repo. Then fill the secret env vars in the dashboard.
+# Render Blueprint: New > Blueprint > pick this repo. Only TAVUS_API_KEY needs a value (empty = demo mode).
+# TAVUS_PAL_ID is optional (the server finds or creates Pip at startup); PUBLIC_URL defaults to Render's own URL.
 services:
   - type: web
     name: doodle-with-pip

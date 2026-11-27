@@ -11,15 +11,24 @@ is the source of truth** (what, why, architecture, API, deploy, eval results). T
 3. `backend/prompts.py`: everything Pip is told. `backend/scorer.py`: how speech becomes a scored guess.
 4. `backend/app.py` (routes) and `backend/tavus.py` (the only Tavus API client).
 
-## Commands
+## Run it (one command)
+```bash
+make up            # Docker only: builds + runs everything on http://localhost:8080 (creates .env if missing)
+curl localhost:8080/health   # -> {"ok": true, "mode": "demo" | "live"}
+make down          # stop
+```
+Demo mode (typed guesses) until `.env` has `TAVUS_API_KEY`. With a key, the server finds or **creates Pip**
+on that Tavus account at startup (`backend/setup_tavus.py: ensure_pal`) and logs `pip ready: <pal_id>`.
+No PAL id, no setup script. If the code changes Pip's prompt/settings/tools, the next start syncs them.
+
+## Commands for working on the code (Python 3.9+, Node 20+)
 ```bash
 make setup         # once: venv + pip + npm, copies .env.example -> .env
-make dev           # backend :8000 + frontend :5173. Demo mode (typed guesses) until .env has Tavus keys
+make dev           # backend :8000 + frontend :5173 with hot reload
 make check         # eval (50 cases) + API/unit tests + frontend build. Run after EVERY change
 make last-game     # what happened in the latest game: rounds, every guess and why, latency
-make tavus-setup   # once: create Pip (PAL) + its tools on Tavus, prints TAVUS_PAL_ID for .env
-make tavus-update  # after changing SYSTEM_PROMPT or PAL settings (setup_tavus.py): update Pip in place
-make docker        # production image on http://localhost:8080 (what Render runs)
+make tavus-setup   # optional: the same Pip sync the server does at startup, by hand (--dry-run for JSON)
+make docker        # production image without compose on http://localhost:8080
 make stop          # free ports 8000/5173 if a dev server was left running
 ```
 
@@ -45,14 +54,15 @@ make stop          # free ports 8000/5173 if a dev server was left running
 ## Where to change things
 - Rules, timings, scoring: constants and functions at the top of `backend/game.py`.
 - What Pip says or knows: `backend/prompts.py`. Per-round context is sent each game (no update needed).
-  `SYSTEM_PROMPT`, hotwords and turn-taking live on the PAL: run `make tavus-update` after changing them.
+  `SYSTEM_PROMPT`, hotwords, turn-taking and tools live on the PAL: synced automatically on the next server start.
 - Add a word: an entry in `backend/words.py` + a stroke template in `backend/strokes.json`, then `make eval`.
 - UI: `frontend/src/` (`Game.tsx` round screen, `CviEmbed.tsx` video + event relay, `Landing.tsx`).
 
 ## Deploy
 One Docker service: FastAPI serves the API and the built React app. Env vars (see `.env.example`):
-`TAVUS_API_KEY`, `TAVUS_PAL_ID` (required for live video), `PUBLIC_URL` (the deployed URL, enables
-webhooks), `TAVUS_CALLBACK_SECRET` (any random string). Render: New > Blueprint (`render.yaml`).
+only `TAVUS_API_KEY` is needed for live video. Optional: `TAVUS_PAL_ID` (pin a PAL; empty = find or create
+Pip), `PUBLIC_URL` + `TAVUS_CALLBACK_SECRET` (signed webhooks; on Render the URL defaults to
+`RENDER_EXTERNAL_URL` and the blueprint generates the secret). Render: New > Blueprint (`render.yaml`).
 Railway / Fly / any Docker host: build the `Dockerfile`, set the env vars, health check `GET /health`.
 Verify: `curl https://<url>/health` -> `{"ok": true, "mode": "live"}`.
 
