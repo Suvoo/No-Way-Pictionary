@@ -52,6 +52,11 @@ SAME_GUESS_WINDOW = 8  # same guess via tool + transcript within this window = o
 
 STATES = ["ROUND_START", "USER_DRAW", "PAL_DRAW", "REVEAL", "GAME_OVER"]
 ACTIVE_STATES = ("USER_DRAW", "PAL_DRAW")
+WAITING_STATES = ("ROUND_START", "REVEAL")  # call is up, no round running: the idle goodbye watches these
+TICKING_STATES = ACTIVE_STATES + WAITING_STATES  # games the 1s ticker visits
+IDLE_WARN_SECONDS = 150  # no round started for this long: Pip invites the player to start, once
+IDLE_GOODBYE_SECONDS = 180  # ...and at this point Pip says bye and the backend ends the call
+STALE_SECONDS = 900  # an idle game older than this is closed silently (e.g. left over from a restart)
 
 Effect = Dict[str, Any]
 
@@ -135,6 +140,9 @@ class Game:
     pal_speaking_since: Optional[float] = None
     pal_speaking_until: Optional[float] = None  # estimated end of the PAL's current sentence
     pending_says: List[Dict[str, Any]] = field(default_factory=list)  # "say" effects held while the PAL talks
+    idle_since: Optional[float] = None  # when the game last entered ROUND_START / REVEAL
+    idle_warned: bool = False
+    ended_reason: Optional[str] = None  # "finished" | "quit" | "idle"
 
     # ---------- persistence ----------
     def to_dict(self) -> Dict[str, Any]:
@@ -180,7 +188,7 @@ def new_game(now: float, rng: Optional[random.Random] = None, words: Optional[Li
             raise ValueError(f"word not in v1 bank: {w}")
     rounds = [Round(index=i + 1, drawer=drawer_for(i + 1), word=w) for i, w in enumerate(words)]
     return Game(id=secrets.token_urlsafe(8), player_token=secrets.token_urlsafe(16),
-                created_at=now, rounds=rounds, mock=mock)
+                created_at=now, rounds=rounds, mock=mock, idle_since=now)
 
 
 # ---------------------------------------------------------------- round lifecycle
@@ -193,6 +201,7 @@ def start_round(g: Game, now: float) -> List[Effect]:
         raise GameError(f"cannot start a round from {g.state}")
     r = g.round()
     r.status, r.started_at, r.deadline = "active", now, now + ROUND_SECONDS
+    g.idle_since, g.idle_warned = None, False
     r.last_user_speech_at = now
     g.state = "USER_DRAW" if r.drawer == "user" else "PAL_DRAW"
 
@@ -227,6 +236,9 @@ def end_round(g: Game, now: float, reason: str) -> List[Effect]:
         g.score[winner] += 1
     last = r.index >= ROUNDS
     g.state = "GAME_OVER" if last else "REVEAL"
+    g.idle_since, g.idle_warned = (None, False) if last else (now, False)
+    if last:
+        g.ended_reason = "finished"
 
     # Live findings: the PAL misread who won ("No way, you got me!" after its own correct guess) and its
     # reactions skipped the word ("Boom! I nailed it."). Reveals are now fixed lines the PAL speaks word
@@ -287,6 +299,7 @@ def reveal_outcome(r: Round) -> str:
 
 
 def quit_game(g: Game, now: float) -> List[Effect]:
+    g.ended_reason = g.ended_reason or "quit"
     if g.state in ACTIVE_STATES:
         r = g.round()
         r.status, r.ended_at, r.end_reason = "missed", now, "quit"
@@ -297,8 +310,35 @@ def quit_game(g: Game, now: float) -> List[Effect]:
     return [{"kind": "end_conversation", "delay": 0}]
 
 
+IDLE_WARN_LINE = (
+    "[game] Nobody has started a round for a while. In one short sentence, invite the player to say "
+    "\"let's start\", and mention you'll head out soon if not.")
+IDLE_GOODBYE_LINE = "Looks like we're done for now! Come back anytime for a rematch. Bye!"
+
+
+def idle_check(g: Game, now: float) -> List[Effect]:
+    """Live finding (Nov 27): a player said "let's just talk" and Pip chatted with no end, on the
+    owner's Tavus minutes, from a public link. While no round is running, the call gets 3 minutes:
+    one invitation at 2.5 minutes, then a fixed goodbye and the backend ends the call. Chatting does
+    not reset the clock; starting a round does."""
+    if g.state not in WAITING_STATES or g.conversation_ended:
+        return []
+    idle = now - (g.idle_since or g.created_at)
+    if idle >= IDLE_GOODBYE_SECONDS:
+        g.state, g.ended_reason, g.conversation_ended = "GAME_OVER", "idle", True
+        if idle >= STALE_SECONDS:  # long dead (e.g. server was down): close quietly, the call is long gone
+            return []
+        return [{"kind": "speak", "text": IDLE_GOODBYE_LINE}, {"kind": "end_conversation", "delay": 10}]
+    if not g.idle_warned and idle >= IDLE_WARN_SECONDS:
+        g.idle_warned = True
+        return [{"kind": "say", "text": IDLE_WARN_LINE}]
+    return []
+
+
 def tick(g: Game, now: float) -> List[Effect]:
     """Timers. Called every second by the app and on every read. Idempotent."""
+    if g.state in WAITING_STATES:
+        return idle_check(g, now)
     if g.state not in ACTIVE_STATES:
         return []
     r = g.round()
@@ -677,6 +717,7 @@ def public_view(g: Game, now: float) -> Dict[str, Any]:
         "round_seconds": ROUND_SECONDS,
         "max_guesses": MAX_GUESSES,
         "score": dict(g.score),
+        "ended_reason": g.ended_reason,
         "round": view_round,
         "history": [_round_summary(x) for x in g.rounds if x.status in ("guessed", "missed")],
         "guess_log": [_guess_view(x) for x in g.guesses],

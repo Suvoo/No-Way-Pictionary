@@ -13,13 +13,26 @@ export function ScoreHeadline({ view, pal, onPlayAgain, onHome }: { view: GameVi
   const headline = user === p ? `It's a tie, ${user} to ${p}!` : user > p ? "You win! 🏆" : `${pal} wins this time.`;
   return (
     <div className="space-y-4">
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="sketch bg-marker p-6 text-center">
-        <p className="text-sm font-bold tracking-wide uppercase">Final score</p>
-        <p className="font-marker mt-1 text-4xl whitespace-nowrap xl:text-5xl">
-          You {user} : {p} {pal}
-        </p>
-        <p className="mt-2 text-xl font-bold">{headline}</p>
-      </motion.div>
+      {view.history.length === 0 ? (
+        // No round was played (e.g. the 3-minute idle goodbye, or Quit before round 1): no score to show.
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="sketch bg-white p-6 text-center">
+          <p className="font-marker text-3xl">{pal} headed out</p>
+          <p className="mt-2 font-semibold text-ink-soft">
+            {view.ended_reason === "idle"
+              ? `No round started for 3 minutes, so ${pal} said bye. Grab a pen and play again!`
+              : "No rounds played this time. Grab a pen and play again!"}
+          </p>
+        </motion.div>
+      ) : (
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="sketch bg-marker p-6 text-center">
+          <p className="text-sm font-bold tracking-wide uppercase">Final score</p>
+          <p className="font-marker mt-1 text-4xl whitespace-nowrap xl:text-5xl">
+            You {user} : {p} {pal}
+          </p>
+          <p className="mt-2 text-xl font-bold">{headline}</p>
+          {view.ended_reason === "idle" && <p className="mt-1 text-sm">{pal} said bye after 3 minutes without a new round.</p>}
+        </motion.div>
+      )}
       <div className="grid gap-3">
         <button onClick={onPlayAgain} className="sketch-btn bg-mint px-6 py-3 text-lg font-extrabold text-white">
           Play again
@@ -38,6 +51,7 @@ export function ScoreHeadline({ view, pal, onPlayAgain, onHome }: { view: GameVi
 }
 
 export function ScoreDetails({ view, pal }: { view: GameView; pal: string }) {
+  if (view.history.length === 0) return null; // nothing played, no table
   return (
     <div className="space-y-5">
       <div className="sketch overflow-x-auto bg-white p-4">

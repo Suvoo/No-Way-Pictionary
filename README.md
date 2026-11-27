@@ -9,7 +9,7 @@
 - **How it works:** [Architecture](#architecture) · **Why this project:** [Why this project](#why-this-project) · **Does it work:** [Eval results and live testing](#eval-results)
 - **Repo:** https://github.com/Suvoo/No-Way-Pictionary
 - **Run it locally in 3 steps:** see [Quick start](#quick-start). It works with **no Tavus key** (demo mode).
-- **Check it works:** `make check` runs the golden-set eval (46 cases), API and unit tests, and the frontend build.
+- **Check it works:** `make check` runs the golden-set eval (50 cases), API and unit tests, and the frontend build.
 - **AI agents:** start with [`CLAUDE.md`](CLAUDE.md): read order, commands, the rules that must not break, where to change things.
 
 ---
@@ -194,7 +194,7 @@ curl -s -X POST localhost:8000/api/games/Xk2../events -H 'X-Player-Token: 9fQ..'
 **You don't have to trust the PAL.** The backend picks the words, keeps each secret on the right side, checks every spoken guess against the secret, and logs every guess with a timestamp, its source (tool, transcript, speech, typed) and why it did or did not count. The PAL talks; the backend referees.
 
 1. **Measured spike (before building, Nov 26 2026):** a Raven-2 PAL, 5 easy words (star, house, fish, bicycle, cat), thick black marker, held steady for 3s, good room light, real phone browser: **5/5 correct within 3 guesses.** That is the only perception result claimed. It is 5 easy words, not all 345 categories.
-2. **Golden-set eval (`make eval`):** 46 scripted cases (including replays of real live-game transcripts) replayed against the real engine with a fake clock. They prove the game logic: scoring, timers, synonyms, repeats, secret handling, giving the word away (said or written), the honesty fallback, exact reveal lines, and that the PAL cannot guess in its own round.
+2. **Golden-set eval (`make eval`):** 50 scripted cases (including replays of real live-game transcripts) replayed against the real engine with a fake clock. They prove the game logic: scoring, timers, synonyms, repeats, secret handling, giving the word away (said or written), the honesty fallback, exact reveal lines, and that the PAL cannot guess in its own round.
 3. **Live audit trail:** every guess is stored with its raw text, source and why it did or did not count, in the database and in `GET /api/games/{id}/scoreboard` (`guess_log`). Players see only the words and who scored; anyone checking the game can re-score it by hand from the log.
 
 ### Eval results
@@ -246,8 +246,12 @@ PASS  #43  After a word swap, Pip may guess an old guess again on the new word (
 PASS  #44  Writing the secret word on the paper (Raven's vision tool) swaps the word, like saying it
 PASS  #45  Other writing Raven sees (a logo, a label) is ignored, not a penalty
 PASS  #46  Writing the new word too gives Pip the point, and the reveal says so
+PASS  #47  Live replay (Nov 27): "Yo, I don't want to play, should we just talk?" - chatting does not keep the call open past 3 minutes
+PASS  #48  Starting a round before 3 minutes cancels the goodbye
+PASS  #49  Between rounds, 3 minutes without "next round" also ends the call
+PASS  #50  A long round is never cut by the idle goodbye (only waiting states count)
 
-46/46 passed
+50/50 passed
 ```
 
 **Live testing (Nov 26 2026):** nine games (29 rounds) against the live PAL. Secrets held in every game. Measured turn latency, from the player stopping talking to the PAL starting, had a median of 0.88s over 49 turns (2 readings were excluded: the PAL was answering a backend line, not the player, a measurement bug since fixed). Every problem the games surfaced is fixed and replayed as an eval case labelled "Live replay": a growing utterance scored three times, the PAL waiting to be spoken to before looking, mishearings, the PAL misreading who won, the backend cutting the PAL off mid-sentence, the player saying their own word, and more.
@@ -283,7 +287,7 @@ PASS  #46  Writing the new word too gives Pip the point, and the reveal says so
 
 ## Edge cases
 
-Handled in v1: synonyms and plurals · repeated guesses · the same guess heard twice · late guesses (3s grace, then rejected) · speech-to-text near misses ("slow man" for snowman: not counted, the PAL asks again; never for 3-letter words) · starting by voice ("let's start", "ready", "next round"; "not ready" and "wait" win) · a growing or cut-off utterance (scored once, fragments ignored) · a PAL that waits instead of looking (prompted after ~9s of quiet) · timer expiry (nobody scores) · duplicate words in a game · Play Again avoiding the last game's words · the player saying their own word out loud (first time: a new word, a fresh 45s and Pip's guesses reset, with a warning on screen; second time in the round: Pip gets the point) · the player writing their word on the paper (Raven's `written_word_on_paper` vision tool reads it; if it is the secret word, same as saying it; other writing is ignored) · the PAL saying its own word (flagged) · the PAL guessing in its own round (refused) · "can't see, hold it closer" (logged, not a guess) · a silent player (one nudge + auto strokes) · a PAL that stops drawing (auto stroke every 7s) · duplicate webhooks and relayed events (idempotent) · garbage or malformed events (ignored, never crash) · a dropped call (Reconnect, same game) · a backend restart (state persisted after every change) · the conversation left open (closed at game end, on Home or Play again, plus a 20 min `max_call_duration` cap).
+Handled in v1: synonyms and plurals · repeated guesses · the same guess heard twice · late guesses (3s grace, then rejected) · speech-to-text near misses ("slow man" for snowman: not counted, the PAL asks again; never for 3-letter words) · starting by voice ("let's start", "ready", "next round"; "not ready" and "wait" win) · a growing or cut-off utterance (scored once, fragments ignored) · a PAL that waits instead of looking (prompted after ~9s of quiet) · timer expiry (nobody scores) · duplicate words in a game · Play Again avoiding the last game's words · the player saying their own word out loud (first time: a new word, a fresh 45s and Pip's guesses reset, with a warning on screen; second time in the round: Pip gets the point) · the player writing their word on the paper (Raven's `written_word_on_paper` vision tool reads it; if it is the secret word, same as saying it; other writing is ignored) · the PAL saying its own word (flagged) · the PAL guessing in its own round (refused) · "can't see, hold it closer" (logged, not a guess) · a silent player (one nudge + auto strokes) · a PAL that stops drawing (auto stroke every 7s) · duplicate webhooks and relayed events (idempotent) · garbage or malformed events (ignored, never crash) · a dropped call (Reconnect, same game) · a backend restart (state persisted after every change) · the conversation left open (closed at game end, on Home or Play again, plus a 20 min `max_call_duration` cap) · off-topic chat (Pip answers in one sentence and steers back; if no round starts for 3 minutes, before round 1 or between rounds, Pip says a fixed goodbye and the backend ends the call, so a public link can't become an open-ended chat on your Tavus minutes).
 
 Noted, not built in v1: holding up a phone image or print · a second person shouting guesses (no speaker ID) · lined or grid paper, a mirrored front camera, glare, shaky hands · rude drawings (prompt-level only) · rotating the phone mid-round · running out of Tavus minutes mid-game (the create call fails cleanly with a message, but there is no warning mid-game) · a slow connection delaying Raven's view.
 
@@ -328,7 +332,7 @@ backend/
   webhooks.py       HMAC verification + callback handling
   setup_tavus.py    create the PAL once; --update applies prompt and settings changes in place
   inspect_game.py   `make last-game`: one game's rounds, guesses and latency from the DB
-  evals/            golden_set.json + run_evals.py (46 cases, many replaying live games)
+  evals/            golden_set.json + run_evals.py (50 cases, many replaying live games)
   tests/            test_api.py (HTTP, secrets, webhooks), test_game.py (timing, holds, swaps)
 frontend/src/
   App.tsx  Landing.tsx  Game.tsx  CviEmbed.tsx  Canvas.tsx  Scoreboard.tsx  api.ts

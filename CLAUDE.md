@@ -15,7 +15,7 @@ is the source of truth** (what, why, architecture, API, deploy, eval results). T
 ```bash
 make setup         # once: venv + pip + npm, copies .env.example -> .env
 make dev           # backend :8000 + frontend :5173. Demo mode (typed guesses) until .env has Tavus keys
-make check         # eval (46 cases) + API/unit tests + frontend build. Run after EVERY change
+make check         # eval (50 cases) + API/unit tests + frontend build. Run after EVERY change
 make last-game     # what happened in the latest game: rounds, every guess and why, latency
 make tavus-setup   # once: create Pip (PAL) + its tools on Tavus, prints TAVUS_PAL_ID for .env
 make tavus-update  # after changing SYSTEM_PROMPT or PAL settings (setup_tavus.py): update Pip in place
@@ -35,6 +35,9 @@ make stop          # free ports 8000/5173 if a dev server was left running
   finishes. Do not send `conversation.respond` / `echo` around that path.
 - **Giving the word away** (saying it, or writing it on the paper, seen by Raven's `written_word_on_paper`
   vision tool) swaps the word once; a second time gives Pip the point. Only the secret word counts.
+- **Pip is a game host, not a chatbot.** Off-topic talk gets one friendly sentence, then back to the game.
+  If no round starts for 3 minutes (`IDLE_GOODBYE_SECONDS`, before round 1 or between rounds), Pip says a
+  fixed goodbye and the backend ends the call. Chatting does not reset that clock; starting a round does.
 - **Every live bug becomes an eval case** in `backend/evals/golden_set.json` ("Live replay (date): ...").
 
 ## Where to change things

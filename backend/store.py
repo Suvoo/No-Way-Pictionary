@@ -14,7 +14,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator, List, Optional
 
-from backend.game import ACTIVE_STATES, Game
+from backend.game import TICKING_STATES, Game
 
 
 class Store:
@@ -49,9 +49,10 @@ class Store:
         return Game.from_dict(json.loads(row[0])) if row else None
 
     def active_ids(self) -> List[str]:
+        """Games the 1s ticker visits: a round running, or the call up between rounds (idle goodbye)."""
         with self.lock:
             rows = self.db.execute(
-                f"SELECT id FROM games WHERE state IN ({','.join('?' * len(ACTIVE_STATES))})", ACTIVE_STATES
+                f"SELECT id FROM games WHERE state IN ({','.join('?' * len(TICKING_STATES))})", TICKING_STATES
             ).fetchall()
         return [r[0] for r in rows]
 

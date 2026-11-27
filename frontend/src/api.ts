@@ -44,6 +44,7 @@ export type GameView = {
   round_seconds: number;
   max_guesses: number;
   score: { user: number; pal: number };
+  ended_reason: "finished" | "quit" | "idle" | null;
   round: {
     index: number;
     drawer: "user" | "pal";

@@ -77,6 +77,11 @@ def run_round_case(case: Dict[str, Any]) -> Tuple[List[str], Dict[str, Any]]:
         check("state", g.state == exp["state"], f"got {g.state}")
     if "score" in exp:
         check("score", g.score == exp["score"], f"got {g.score}")
+    if "ended_reason" in exp:
+        check("ended_reason", g.ended_reason == exp["ended_reason"], f"got {g.ended_reason}")
+    if "ends_call" in exp:
+        ended = any(e["kind"] == "end_conversation" for e in effects)
+        check("ends_call", ended == exp["ends_call"], f"end_conversation sent: {ended}")
     if "started_by" in exp:
         check("started_by", r.started_by == exp["started_by"], f"got {r.started_by}")
     if "first_guess" in exp:

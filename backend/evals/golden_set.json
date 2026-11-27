@@ -969,6 +969,117 @@
         "end_reason": "gave_away",
         "say_contains": "You wrote it again!"
       }
+    },
+    {
+      "id": 47,
+      "title": "Live replay (Nov 27): \"Yo, I don't want to play, should we just talk?\" - chatting does not keep the call open past 3 minutes",
+      "mode": "lobby",
+      "word": "star",
+      "events": [
+        {
+          "t": 10,
+          "user": "It's Thanksgiving!"
+        },
+        {
+          "t": 20,
+          "user": "Yo, I don't want to play the game. Should we just talk?"
+        },
+        {
+          "t": 60,
+          "user": "So what did you eat today?"
+        },
+        {
+          "t": 149,
+          "tick": true
+        },
+        {
+          "t": 151,
+          "tick": true
+        },
+        {
+          "t": 170,
+          "user": "tell me a story"
+        },
+        {
+          "t": 181,
+          "tick": true
+        }
+      ],
+      "expect": {
+        "state": "GAME_OVER",
+        "ended_reason": "idle",
+        "say_count_contains": [
+          "head out soon",
+          1
+        ],
+        "say_contains": "Come back anytime for a rematch",
+        "ends_call": true
+      }
+    },
+    {
+      "id": 48,
+      "title": "Starting a round before 3 minutes cancels the goodbye",
+      "mode": "lobby",
+      "word": "star",
+      "events": [
+        {
+          "t": 151,
+          "tick": true
+        },
+        {
+          "t": 170,
+          "user": "okay let's start"
+        },
+        {
+          "t": 200,
+          "tick": true
+        }
+      ],
+      "expect": {
+        "state": "USER_DRAW",
+        "ends_call": false
+      }
+    },
+    {
+      "id": 49,
+      "title": "Between rounds, 3 minutes without \"next round\" also ends the call",
+      "mode": "user_draw",
+      "word": "fish",
+      "events": [
+        {
+          "t": 5,
+          "pal": "Is it a fish?"
+        },
+        {
+          "t": 100,
+          "tick": true
+        },
+        {
+          "t": 186,
+          "tick": true
+        }
+      ],
+      "expect": {
+        "state": "GAME_OVER",
+        "ended_reason": "idle",
+        "ends_call": true
+      }
+    },
+    {
+      "id": 50,
+      "title": "A long round is never cut by the idle goodbye (only waiting states count)",
+      "mode": "user_draw",
+      "word": "fish",
+      "events": [
+        {
+          "t": 40,
+          "tick": true
+        }
+      ],
+      "expect": {
+        "state": "USER_DRAW",
+        "ends_call": false
+      }
     }
   ]
 }
