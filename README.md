@@ -164,7 +164,10 @@ There are three ways to try it:
 
 ### Run it locally
 
-Docker is the only requirement. No Python, Node or database to install.
+**Prerequisite: Docker** ([Docker Desktop](https://www.docker.com/products/docker-desktop/) on Mac or Windows, installed and **running**; it includes Docker Compose). That's it: no Python, Node or database to install.
+- `git` to clone, or use **Code > Download ZIP** on GitHub instead.
+- `make` is optional. It's only a shortcut, and `docker compose up --build` does the same thing.
+- A Tavus API key is optional: without one it runs in demo mode.
 
 1. **Clone it and start it:**
    ```bash
