@@ -3,13 +3,27 @@
 **Pip guesses your doodles out loud. Then you guess Pip's.** A turn-based drawing game against a live Tavus video human.
 
 - **Play it:** **https://doodle-with-pip.onrender.com** (no login; grab paper and a thick pen, allow camera and mic. Free hosting: the first load after a quiet spell takes about 50 seconds)
-- **Watch it:** `TODO: 2-minute Loom`
+- **Watch it:** https://youtu.be/hA5SKsZd5HE (a full game, start to finish; see [Demo](#demo))
 - **Run your own copy:** `git clone https://github.com/Suvoo/No-Way-Pictionary.git && cd No-Way-Pictionary && make up`, then open http://localhost:8080 ([details](#run-it-yourself))
 - **AI agents** (Claude Code, Cursor, Codex...): read [`AGENTS.md`](AGENTS.md) first. It covers the read order, commands, the rules that must not break, and where to change things.
 
 ---
 
-## What
+<a name="demo"></a>
+<details open>
+<summary><h2>Demo</h2></summary>
+
+[![Doodle with Pip demo: a full game against Pip. Click to watch on YouTube.](https://img.youtube.com/vi/hA5SKsZd5HE/maxresdefault.jpg)](https://youtu.be/hA5SKsZd5HE)
+
+**▶ [Watch the demo on YouTube](https://youtu.be/hA5SKsZd5HE)**: one full game, 6 rounds, me against Pip. (GitHub can't play videos inside a README, so the picture opens YouTube.)
+
+</details>
+
+---
+
+<a name="what"></a>
+<details open>
+<summary><h2>What</h2></summary>
 
 You and Pip, an AI on a live video call, take turns drawing. There are 6 rounds of 45 seconds each, and each guesser gets 3 tries.
 
@@ -19,7 +33,11 @@ You and Pip, an AI on a live video call, take turns drawing. There are 6 rounds 
 
 > **A PAL is a prompt. This is a system.** Pip, the Tavus PAL, is one component: the face, the voice and the eyes. The game is everything around it, and none of that lives in the Tavus dashboard: a state machine, secrets kept on the right side, a referee that scores every guess, turn-taking that never talks over Pip, stroke templates, and a 50-case eval.
 
-## Why
+</details>
+
+<a name="why"></a>
+<details open>
+<summary><h2>Why</h2></summary>
 
 **Games are where new tech proves itself.** Much of computer science has tested its proofs of concept on games, and games have pushed it forward. Games drove graphics and physics simulation. Reinforcement learning grew up on Atari games, then on Go and chess. Robots learned to play table tennis. Online games pushed live streaming, real-time communication and instant feedback. So whenever I want to know how good a technology really is, my first test is a game. Pictionary is a good one for real-time video AI: it needs eyes, a voice and a fast back-and-forth with someone who can draw back.
 
@@ -32,9 +50,13 @@ You and Pip, an AI on a live video call, take turns drawing. There are 6 rounds 
 
 **Success measure:** a full game finishes in 6 to 7 minutes with a final score, all 6 words and who scored each round. The guess log (in the API and the database) shows every guess, how many tries it took, and whether it was right.
 
+</details>
+
 ---
 
-## Architecture
+<a name="architecture"></a>
+<details open>
+<summary><h2>Architecture</h2></summary>
 
 ### 1. The loop: who owns each step
 
@@ -124,9 +146,13 @@ TAVUS CVI
 
 </details>
 
+</details>
+
 ---
 
-## Run it yourself
+<a name="run-it-yourself"></a>
+<details open>
+<summary><h2>Run it yourself</h2></summary>
 
 There are three ways to try it:
 
@@ -203,9 +229,13 @@ make check     # eval (50 cases) + API/unit tests + frontend build. Run after ev
 
 </details>
 
+</details>
+
 ---
 
-## Does it work?
+<a name="does-it-work"></a>
+<details open>
+<summary><h2>Does it work?</h2></summary>
 
 - **Eval: 50/50 pass.** These are scripted cases, many of them replays of real live games, run against the real engine with a fake clock: scoring, timers, synonyms, mishearings, secrets, giving the word away, exact reveal lines and the idle goodbye. `make eval`.
 - **Tests:** API, game timing, webhooks, secrets, and Pip auto-setup against a fake Tavus. `make test`.
@@ -282,9 +312,13 @@ PASS  #50  A long round is never cut by the idle goodbye (only waiting states co
 
 </details>
 
+</details>
+
 ---
 
-## Reference
+<a name="reference"></a>
+<details open>
+<summary><h2>Reference</h2></summary>
 
 <details>
 <summary><b>How to play, in detail</b></summary>
@@ -434,3 +468,5 @@ frontend/src/
 </details>
 
 Word bank from the [Google Quick, Draw! dataset](https://github.com/googlecreativelab/quickdraw-dataset) (CC BY 4.0). heart is a hand-added word; boat and balloon map to Quick Draw's "sailboat" and "hot air balloon".
+
+</details>
