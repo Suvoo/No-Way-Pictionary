@@ -5,7 +5,7 @@ paper and Pip guesses through the camera; then Pip draws on a canvas and the pla
 is the source of truth** (what, why, architecture, API, deploy, eval results). This file is the map.
 
 ## Read in this order
-1. `README.md`: Quick start, Architecture, API.
+1. `README.md`: Run it yourself, Architecture, API.
 2. `backend/game.py`: the whole game (state machine, rules, timers, scoring). Pure: takes `now`, returns
    *effects* (messages for Pip) instead of calling Tavus.
 3. `backend/prompts.py`: everything Pip is told. `backend/scorer.py`: how speech becomes a scored guess.
@@ -16,6 +16,12 @@ is the source of truth** (what, why, architecture, API, deploy, eval results). T
 make up            # Docker only: builds + runs everything on http://localhost:8080 (creates .env if missing)
 curl localhost:8080/health   # -> {"ok": true, "mode": "demo" | "live"}
 make down          # stop
+```
+**No `make` (Windows, or any machine without it):** every target is a plain command in the `Makefile`.
+Needs Docker Desktop only:
+```bash
+docker compose up --build      # = make up   (no .env needed; for live video: copy .env.example .env, add the key)
+docker compose down            # = make down
 ```
 Demo mode (typed guesses) until `.env` has `TAVUS_API_KEY`. With a key, the server finds or **creates Pip**
 on that Tavus account at startup (`backend/setup_tavus.py: ensure_pal`) and logs `pip ready: <pal_id>`.
@@ -31,6 +37,10 @@ make tavus-setup   # optional: the same Pip sync the server does at startup, by 
 make docker        # production image without compose on http://localhost:8080
 make stop          # free ports 8000/5173 if a dev server was left running
 ```
+On Windows without `make`, run the Makefile lines directly, with `.venv\Scripts\` in place of `.venv/bin/`:
+`python -m venv .venv`, `.venv\Scripts\pip install -r backend/requirements.txt`,
+`.venv\Scripts\python backend/evals/run_evals.py -v` (eval), `.venv\Scripts\python -m pytest backend/tests -q`
+(tests), `cd frontend && npm install && npm run build`.
 
 ## Rules that must not break (tests enforce them)
 - **Secrets:** in the player's rounds the word goes to the browser only, never to Pip. In Pip's rounds
